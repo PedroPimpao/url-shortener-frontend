@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Link Precision - Create Account</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: #1f2430;
+    background: linear-gradient(135deg, #e9ecfb 0%, #eef1fb 50%, #e4e9fa 100%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 40px 20px;
+  }
+
+  .signup-card {
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 4px 20px rgba(60,60,120,0.08);
+    width: 360px;
+    padding: 40px 40px 32px;
+    text-align: center;
+  }
+
+  .logo {
+    font-size: 32px;
+    font-weight: 800;
+    color: #4338ca;
+    margin: 0 0 12px;
+  }
+
+  .signup-card > p.subtitle {
+    color: #6b7280;
+    font-size: 14px;
+    margin: 0 0 26px;
+  }
+
+  .field {
+    text-align: left;
+    margin-bottom: 18px;
+  }
+
+  label {
+    display: block;
+    font-size: 13px;
+    font-weight: 700;
+    color: #1f2430;
+    margin-bottom: 8px;
+  }
+
+  .input-wrap {
+    display: flex;
+    align-items: center;
+    background: #f0f1f6;
+    border-radius: 8px;
+    padding: 12px 14px;
+    gap: 10px;
+  }
+
+  .input-wrap input {
+    border: none;
+    background: transparent;
+    outline: none;
+    width: 100%;
+    font-size: 14px;
+    color: #333;
+  }
+
+  .input-wrap input::placeholder {
+    color: #a3a7b5;
+  }
+
+  .input-icon {
+    color: #6b7280;
+    font-size: 15px;
+    flex-shrink: 0;
+  }
+
+  .hint {
+    font-size: 12px;
+    font-weight: 600;
+    color: #6b7280;
+    margin: 8px 0 0;
+  }
+
+  .create-btn {
+    width: 100%;
+    background: #4f46e5;
+    color: #fff;
+    border: none;
+    padding: 14px;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin: 22px 0 20px;
+  }
+  .create-btn:hover { background: #4338ca; }
+
+  .login-text {
+    font-size: 14px;
+    color: #4a4f5c;
+    margin: 0 0 22px;
+  }
+  .login-text a {
+    color: #4f46e5;
+    font-weight: 700;
+    text-decoration: underline;
+  }
+
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+  .divider::before,
+  .divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: #e0e2ea;
+  }
+  .divider span {
+    font-size: 13px;
+    font-weight: 600;
+    color: #6b7280;
+    white-space: nowrap;
+  }
+
+  .oauth-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .oauth-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: #f0f1f6;
+    border: none;
+    border-radius: 8px;
+    padding: 11px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #1f2430;
+    cursor: pointer;
+  }
+  .oauth-btn:hover { background: #e6e8f0; }
+
+  .terms {
+    font-size: 12px;
+    color: #8b8fa3;
+    line-height: 1.5;
+    margin: 0;
+  }
+  .terms a {
+    color: #4f46e5;
+    text-decoration: none;
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+
+<div class="signup-card">
+  <h1 class="logo">Link Precision</h1>
+  <p class="subtitle">Create your account to start managing links.</p>
+
+  <div class="field">
+    <label for="fullname">Full Name</label>
+    <div class="input-wrap">
+      <span class="input-icon">👤</span>
+      <input type="text" id="fullname" placeholder="John Doe">
+    </div>
+  </div>
+
+  <div class="field">
+    <label for="email">Email Address</label>
+    <div class="input-wrap">
+      <span class="input-icon">✉</span>
+      <input type="email" id="email" placeholder="you@example.com">
+    </div>
+  </div>
+
+  <div class="field">
+    <label for="password">Password</label>
+    <div class="input-wrap">
+      <span class="input-icon">🔒</span>
+      <input type="password" id="password" placeholder="••••••••" value="password">
+    </div>
+    <p class="hint">Must be at least 8 characters.</p>
+  </div>
+
+  <button class="create-btn">Create Account →</button>
+
+  <p class="login-text">Already have an account? <a href="#">Log in</a></p>
+
+  <div class="divider"><span>Or continue with</span></div>
+
+  <div class="oauth-row">
+    <button class="oauth-btn">🌐 Google</button>
+    <button class="oauth-btn">&lt;&gt; GitHub</button>
+  </div>
+
+  <p class="terms">By clicking "Create Account", you agree to our <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>.</p>
+</div>
+
+</body>
+</html>
