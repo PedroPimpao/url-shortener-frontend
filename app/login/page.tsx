@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useState, type SubmitEvent } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, Eye, EyeOff, LockKeyhole, Mail } from 'lucide-react';
@@ -17,7 +17,7 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
+  async function submit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     setError('');
     setLoading(true);
@@ -46,10 +46,10 @@ export default function LoginPage() {
           Link Precision
         </Link>
       </header>
-      <main className="flex justify-center px-5 py-[90px]">
-        <Card className="w-[360px] border-0 px-10 pt-9 pb-8 text-center shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
+      <main className="flex justify-center px-5 py-22.5">
+        <Card className="w-90 border-0 px-10 pt-9 pb-8 text-center shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
           <h1 className="mb-2.5 text-[22px] font-bold">Welcome Back</h1>
-          <p className="mb-[26px] text-sm leading-5 text-[#6b7280]">
+          <p className="mb-6.5 text-sm leading-5 text-[#6b7280]">
             Enter your credentials to access your dashboard.
           </p>
           <FormMessage>{error}</FormMessage>
@@ -57,8 +57,8 @@ export default function LoginPage() {
             <label htmlFor="email" className="mb-2 block text-[13px] font-bold">
               Email Address
             </label>
-            <div className="mb-[18px] flex items-center gap-2.5 rounded-lg bg-[#eaeefb] px-3.5">
-              <Mail className="size-[15px] text-[#6b7280]" />
+            <div className="mb-4.5 flex items-center gap-2.5 rounded-lg bg-[#eaeefb] px-3.5">
+              <Mail className="size-3.75 text-[#6b7280]" />
               <Input
                 id="email"
                 name="email"
@@ -81,7 +81,7 @@ export default function LoginPage() {
               </Link>
             </div>
             <div className="mb-6 flex items-center gap-2.5 rounded-lg bg-[#eaeefb] px-3.5">
-              <LockKeyhole className="size-[15px] text-[#6b7280]" />
+              <LockKeyhole className="size-3.75 text-[#6b7280]" />
               <Input
                 id="password"
                 name="password"
@@ -105,6 +105,7 @@ export default function LoginPage() {
               </button>
             </div>
             <Button
+              type="submit"
               disabled={loading}
               className="mb-5 h-12 w-full bg-indigo-600 text-[15px] font-semibold hover:bg-indigo-700"
             >

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useState, type SubmitEvent } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, ArrowRight, KeyRound, LockKeyhole } from 'lucide-react';
 import { FormMessage } from '@/components/form-message';
@@ -18,7 +18,7 @@ export default function ForgotPasswordPage() {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  async function submit(event: FormEvent<HTMLFormElement>) {
+  async function submit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     setError('');
     setMessage('');
@@ -89,9 +89,9 @@ export default function ForgotPasswordPage() {
           Login
         </Link>
       </header>
-      <main className="flex justify-center px-5 py-[100px]">
-        <Card className="w-[360px] px-[38px] pt-9 pb-8 text-center shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
-          <div className="mx-auto mb-[18px] flex size-12 items-center justify-center text-indigo-600">
+      <main className="flex justify-center px-5 py-25">
+        <Card className="w-90 px-9.5 pt-9 pb-8 text-center shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
+          <div className="mx-auto mb-4.5 flex size-12 items-center justify-center text-indigo-600">
             {step === 'complete' ? (
               <KeyRound className="size-7" />
             ) : (
@@ -99,7 +99,7 @@ export default function ForgotPasswordPage() {
             )}
           </div>
           <h1 className="mb-2.5 text-[22px] font-bold">{title}</h1>
-          <p className="mb-[26px] text-sm leading-5 text-[#6b7280]">
+          <p className="mb-6.5text-sm leading-5 text-[#6b7280]">
             {description}
           </p>
           <FormMessage>{error}</FormMessage>
@@ -114,7 +114,7 @@ export default function ForgotPasswordPage() {
                   >
                     Email Address
                   </label>
-                  <div className="mb-[22px] rounded-lg bg-[#eef0f5] px-3.5">
+                  <div className="mb-5.5 rounded-lg bg-[#eef0f5] px-3.5">
                     <Input
                       id="email"
                       name="email"
@@ -134,7 +134,7 @@ export default function ForgotPasswordPage() {
                   >
                     Recovery Code
                   </label>
-                  <div className="mb-[22px] rounded-lg bg-[#eef0f5] px-3.5">
+                  <div className="mb-5.5 rounded-lg bg-[#eef0f5] px-3.5">
                     <Input
                       id="otp"
                       name="otp"
@@ -149,7 +149,7 @@ export default function ForgotPasswordPage() {
                 </>
               )}
               {step === 'complete' && (
-                <div className="space-y-[18px]">
+                <div className="space-y-4.5">
                   <div>
                     <label
                       htmlFor="password"
@@ -185,8 +185,9 @@ export default function ForgotPasswordPage() {
                 </div>
               )}
               <Button
+                type="submit"
                 disabled={loading}
-                className="mt-[22px] mb-5 h-12 w-full bg-indigo-600 text-[15px] font-semibold hover:bg-indigo-700"
+                className="mt-5.5 mb-5 h-12 w-full bg-indigo-600 text-[15px] font-semibold hover:bg-indigo-700"
               >
                 {loading
                   ? 'Please wait...'

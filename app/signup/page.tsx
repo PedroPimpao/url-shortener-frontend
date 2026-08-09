@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useState, type SubmitEvent } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -23,7 +23,7 @@ export default function SignupPage() {
   const router = useRouter();
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  async function submit(event: FormEvent<HTMLFormElement>) {
+  async function submit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     setError('');
     setLoading(true);
@@ -45,11 +45,11 @@ export default function SignupPage() {
   }
   return (
     <main className="flex min-h-screen items-center justify-center bg-[linear-gradient(135deg,#e9ecfb_0%,#eef1fb_50%,#e4e9fa_100%)] px-5 py-10">
-      <Card className="w-[360px] border-0 px-10 pt-10 pb-8 text-center shadow-[0_4px_20px_rgba(60,60,120,0.08)]">
+      <Card className="w-90 border-0 px-10 pt-10 pb-8 text-center shadow-[0_4px_20px_rgba(60,60,120,0.08)]">
         <h1 className="mb-3 text-[32px] font-extrabold text-indigo-700">
           Link Precision
         </h1>
-        <p className="mb-[26px] text-sm text-[#6b7280]">
+        <p className="mb-6.5 text-sm text-[#6b7280]">
           Create your account to start managing links.
         </p>
         <FormMessage>{error}</FormMessage>
@@ -57,8 +57,8 @@ export default function SignupPage() {
           <label htmlFor="name" className="mb-2 block text-[13px] font-bold">
             Full Name
           </label>
-          <div className={`${field} mb-[18px]`}>
-            <UserRound className="size-[15px] text-[#6b7280]" />
+          <div className={`${field} mb-4.5`}>
+            <UserRound className="size-3.75 text-[#6b7280]" />
             <Input
               id="name"
               name="name"
@@ -70,8 +70,8 @@ export default function SignupPage() {
           <label htmlFor="email" className="mb-2 block text-[13px] font-bold">
             Email Address
           </label>
-          <div className={`${field} mb-[18px]`}>
-            <Mail className="size-[15px] text-[#6b7280]" />
+          <div className={`${field} mb-4.5`}>
+            <Mail className="size-3.75 text-[#6b7280]" />
             <Input
               id="email"
               name="email"
@@ -88,7 +88,7 @@ export default function SignupPage() {
             Password
           </label>
           <div className={field}>
-            <LockKeyhole className="size-[15px] text-[#6b7280]" />
+            <LockKeyhole className="size-3.75 text-[#6b7280]" />
             <Input
               id="password"
               name="password"
@@ -104,14 +104,15 @@ export default function SignupPage() {
             Must be at least 8 characters.
           </p>
           <Button
+            type="submit"
             disabled={loading}
-            className="mt-[22px] mb-5 h-12 w-full bg-indigo-600 text-[15px] font-bold hover:bg-indigo-700"
+            className="mt-5.5 mb-5 h-12 w-full bg-indigo-600 text-[15px] font-bold hover:bg-indigo-700"
           >
             {loading ? 'Creating...' : 'Create Account'}
             <ArrowRight />
           </Button>
         </form>
-        <p className="mb-[22px] text-sm text-[#4a4f5c]">
+        <p className="mb-5.5 text-sm text-[#4a4f5c]">
           Already have an account?{' '}
           <Link href="/login" className="font-bold text-indigo-600 underline">
             Log in
@@ -138,7 +139,7 @@ export default function SignupPage() {
             GitHub
           </Button>
         </div>
-        <p className="text-xs leading-[18px] text-[#8b8fa3]">
+        <p className="text-xs leading-4.5 text-[#8b8fa3]">
           By clicking &quot;Create Account&quot;, you agree to our{' '}
           <span className="font-semibold text-indigo-600">
             Terms of Service

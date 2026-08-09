@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useState, type SubmitEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   BarChart3,
@@ -53,7 +53,7 @@ export default function DashboardPage() {
       })
       .finally(() => setAuthLoading(false));
   }, [router]);
-  async function create(event: FormEvent<HTMLFormElement>) {
+  async function create(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     setError('');
     setCreating(true);
@@ -89,10 +89,10 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-[#f5f6fa]">
       <AppHeader />
-      <main className="mx-auto flex max-w-[1275px] flex-col gap-6 px-5 py-8 lg:flex-row lg:px-10">
-        <Card className="min-h-[580px] flex-1 border-0 px-8 py-10 text-center shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
+      <main className="mx-auto flex max-w-318.75 flex-col gap-6 px-5 py-8 lg:flex-row lg:px-10">
+        <Card className="min-h-145 flex-1 border-0 px-8 py-10 text-center shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
           <h1 className="mb-3 text-2xl font-bold">Shorten a Long Link</h1>
-          <p className="mx-auto mb-7 max-w-[380px] text-[15px] leading-[22px] text-[#6b7280]">
+          <p className="mx-auto mb-7 max-w-95 text-[15px] leading-5.5 text-[#6b7280]">
             Paste your long URL below to create a concise, trackable link.
           </p>
           <FormMessage>{error}</FormMessage>
@@ -108,6 +108,7 @@ export default function DashboardPage() {
               />
             </div>
             <Button
+              type="submit"
               disabled={creating}
               className="h-12 w-full bg-indigo-600 text-[15px] font-semibold hover:bg-indigo-700"
             >
@@ -132,7 +133,7 @@ export default function DashboardPage() {
             urls.map((item, index) => (
               <article
                 key={item['short-code']}
-                className="mb-4 rounded-[10px] border border-[#eceef4] px-5 py-[18px]"
+                className="mb-4 rounded-[10px] border border-[#eceef4] px-5 py-4.5"
               >
                 <div className="mb-3 flex items-center justify-between">
                   <h3 className="font-semibold">
@@ -160,7 +161,7 @@ export default function DashboardPage() {
                   {item['original-url']}
                 </div>
                 <div className="flex items-center justify-between text-[13px] text-[#8b8fa3]">
-                  <div className="flex gap-[18px]">
+                  <div className="flex gap-4.5">
                     <span className="flex items-center gap-1">
                       <BarChart3 className="size-3.5" />
                       {item.clicks} clicks
@@ -184,7 +185,7 @@ export default function DashboardPage() {
           {!authLoading && urls.length === 0 && (
             <div className="rounded-[10px] border-2 border-dashed border-[#d8dae5] py-10 text-center text-[#b0b3c0]">
               <div className="mb-2.5 flex justify-center">
-                <Grid2X2 className="size-[22px]" />
+                <Grid2X2 className="size-5.5" />
               </div>
               <p className="text-sm">No links found.</p>
             </div>
