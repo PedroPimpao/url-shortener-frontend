@@ -41,7 +41,7 @@ export function AppHeader() {
       </nav>
       <Button
         variant="outline"
-        className="h-9 border-[#d8dae5] px-[18px] font-semibold text-indigo-700"
+        className="h-9 border-[#d8dae5] px-4.5 font-semibold text-indigo-700"
         onClick={() => {
           clearSession();
           router.replace('/login');
