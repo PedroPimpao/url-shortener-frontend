@@ -32,7 +32,7 @@ export function AppHeader() {
           href="/profile"
           className={cn(
             'flex h-full items-center border-b-2 border-transparent text-[15px] text-[#6b7280]',
-            pathname === '/profile' &&
+            pathname.startsWith('/profile') &&
               'border-indigo-700 font-semibold text-indigo-700',
           )}
         >

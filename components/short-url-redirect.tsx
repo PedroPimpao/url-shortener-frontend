@@ -38,6 +38,7 @@ export function ShortUrlRedirect({ code }: { code: string }) {
             <h1 className="mb-2 text-xl font-bold">Unable to open link</h1>
             <p className="mb-6 text-sm leading-5 text-[#6b7280]">{error}</p>
             <Button
+              nativeButton={false}
               render={<Link href={unauthorized ? '/login' : '/dashboard'} />}
               className="h-10 bg-indigo-600 px-5 hover:bg-indigo-700"
             >
