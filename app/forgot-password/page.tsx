@@ -78,10 +78,6 @@ export default function ForgotPasswordPage() {
         >
           Link Precision
         </Link>
-        <nav className="flex gap-8 text-[15px] text-[#6b7280]">
-          <Link href="/dashboard">Dashboard</Link>
-          <Link href="/profile">My Profile</Link>
-        </nav>
         <Link
           href="/login"
           className="text-[15px] font-semibold text-indigo-600"
