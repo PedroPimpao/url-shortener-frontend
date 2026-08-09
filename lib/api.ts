@@ -115,6 +115,15 @@ export const api = {
       `/url/access-url/${encodeURIComponent(code)}`,
       { authenticated: true },
     ),
+  updateUrlTitle: (code: string, title: string) =>
+    request<{ message: string; 'new-title': string }>(
+      `/url/update-title/${encodeURIComponent(code)}`,
+      {
+        method: 'PATCH',
+        authenticated: true,
+        body: { title },
+      },
+    ),
   generateQrCode: (code: string) =>
     request<{ qrcode: string }>(
       `/url/generate-qrcode/${encodeURIComponent(code)}`,
