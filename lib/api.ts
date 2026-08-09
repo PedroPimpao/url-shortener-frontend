@@ -110,6 +110,11 @@ export const api = {
         body: { original_url: originalUrl },
       },
     ),
+  accessUrl: (code: string) =>
+    request<{ message: string; 'original-url': string; clicks: number }>(
+      `/url/access-url/${encodeURIComponent(code)}`,
+      { authenticated: true },
+    ),
   generateQrCode: (code: string) =>
     request<{ qrcode: string }>(
       `/url/generate-qrcode/${encodeURIComponent(code)}`,

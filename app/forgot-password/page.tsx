@@ -99,7 +99,7 @@ export default function ForgotPasswordPage() {
             )}
           </div>
           <h1 className="mb-2.5 text-[22px] font-bold">{title}</h1>
-          <p className="mb-6.5text-sm leading-5 text-[#6b7280]">
+          <p className="mb-6.5 text-sm leading-5 text-[#6b7280]">
             {description}
           </p>
           <FormMessage>{error}</FormMessage>
