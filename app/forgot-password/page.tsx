@@ -1,16 +1,14 @@
 import Link from 'next/link';
 import { ForgotPasswordForm } from '@/components/forms/forgot-password-form';
 import { Card } from '@/components/ui/card';
+import Logo from '@/components/logo';
 
 export default function ForgotPasswordPage() {
   return (
     <div className="min-h-screen bg-[#f5f6fa]">
       <header className="flex items-center justify-between border-b border-[#e5e7ef] px-10 py-5">
-        <Link
-          href="/login"
-          className="text-[26px] font-extrabold text-indigo-700"
-        >
-          Link Precision
+        <Link href="/login">
+          <Logo />
         </Link>
         <Link
           href="/login"

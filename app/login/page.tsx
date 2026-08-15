@@ -1,16 +1,14 @@
 import Link from 'next/link';
 import { LoginForm } from '@/components/forms/login-form';
 import { Card } from '@/components/ui/card';
+import Logo from '@/components/logo';
 
 export default function LoginPage() {
   return (
     <div className="min-h-screen bg-[#f5f6fa]">
       <header className="border-b border-[#e5e7ef] bg-white px-10 py-5">
-        <Link
-          href="/login"
-          className="text-[26px] font-extrabold text-indigo-700"
-        >
-          Link Precision
+        <Link href="/login">
+          <Logo />
         </Link>
       </header>
       <main className="flex justify-center px-5 py-22.5">
