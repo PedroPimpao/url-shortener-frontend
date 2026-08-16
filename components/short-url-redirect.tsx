@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { CircleAlert, LoaderCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { api, ApiError } from '@/lib/api';
+import { accessUrlAction } from '@/app/_actions/urls';
 
 export function ShortUrlRedirect({ code }: { code: string }) {
   const [error, setError] = useState('');
@@ -16,17 +16,13 @@ export function ShortUrlRedirect({ code }: { code: string }) {
     if (processedCode.current === code) return;
     processedCode.current = code;
 
-    api
-      .accessUrl(code)
-      .then((result) => window.location.replace(result['original-url']))
-      .catch((reason) => {
-        setUnauthorized(reason instanceof ApiError && reason.status === 401);
-        setError(
-          reason instanceof Error
-            ? reason.message
-            : 'Unable to access this shortened link.',
-        );
-      });
+    accessUrlAction(code).then((result) => {
+      if (result.data?.url) window.location.replace(result.data.url);
+      else {
+        setUnauthorized(Boolean(result.data?.unauthorized));
+        setError(result.error ?? 'Unable to access this shortened link.');
+      }
+    });
   }, [code]);
 
   return (

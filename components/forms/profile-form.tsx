@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useActionState, useEffect } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { X } from 'lucide-react';
 import { FormMessage } from '@/components/form-message';
@@ -13,7 +13,8 @@ import {
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { PasswordInput } from '@/components/ui/password-input';
-import { api, type User } from '@/lib/api';
+import type { User } from '@/lib/api';
+import { updateProfileAction } from '@/app/_actions/user';
 
 type ProfileValues = { name: string; email: string; currentPassword: string };
 
@@ -26,55 +27,22 @@ export function ProfileForm({
   onUpdated: (user: User) => void;
   onCancel: () => void;
 }) {
-  const [error, setError] = useState('');
-  const [message, setMessage] = useState('');
-  const {
-    control,
-    register,
-    handleSubmit,
-    formState: { isSubmitting },
-  } = useForm<ProfileValues>({
+  const [state, formAction, isPending] = useActionState(
+    updateProfileAction,
+    {},
+  );
+  const { control, register } = useForm<ProfileValues>({
     defaultValues: { name: user.name, email: user.email, currentPassword: '' },
   });
   const email = useWatch({ control, name: 'email' });
   const emailChanged = email.trim().toLowerCase() !== user.email;
 
-  async function submit(values: ProfileValues) {
-    const name = values.name.trim();
-    const email = values.email.trim().toLowerCase();
-    const nameChanged = name !== user.name;
-    if (!nameChanged && !emailChanged) {
-      setError('Make at least one change before saving.');
-      return;
-    }
-    if (emailChanged && !values.currentPassword) {
-      setError('Enter your current password to change your email address.');
-      return;
-    }
-    setError('');
-    setMessage('');
-    try {
-      let nextUser = { ...user };
-      if (nameChanged)
-        nextUser = { ...nextUser, name: (await api.updateName(name)).name };
-      if (emailChanged)
-        nextUser = {
-          ...nextUser,
-          email: (
-            await api.updateEmail(user.email, email, values.currentPassword)
-          ).email,
-        };
-      onUpdated(nextUser);
-      setMessage('Your profile has been updated successfully.');
-    } catch (reason) {
-      setError(
-        reason instanceof Error ? reason.message : 'Unable to update profile.',
-      );
-    }
-  }
+  useEffect(() => {
+    if (state.data) onUpdated(state.data);
+  }, [state.data, onUpdated]);
 
   return (
-    <form onSubmit={handleSubmit(submit)} className="px-6 py-7">
+    <form action={formAction} className="px-6 py-7">
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
           <h3 className="text-lg font-bold">Edit personal information</h3>
@@ -91,8 +59,8 @@ export function ProfileForm({
           <X className="size-4" />
         </button>
       </div>
-      <FormMessage>{error}</FormMessage>
-      <FormMessage success>{message}</FormMessage>
+      <FormMessage>{state.error}</FormMessage>
+      <FormMessage success>{state.message}</FormMessage>
       <FieldGroup className="grid gap-5 sm:grid-cols-2">
         <Field>
           <FieldLabel htmlFor="name" className="text-[13px] font-bold">
@@ -150,10 +118,10 @@ export function ProfileForm({
         </Button>
         <Button
           type="submit"
-          disabled={isSubmitting}
+          disabled={isPending}
           className="h-10 bg-indigo-600 px-5 hover:bg-indigo-700"
         >
-          {isSubmitting ? 'Saving...' : 'Save changes'}
+          {isPending ? 'Saving...' : 'Save changes'}
         </Button>
       </div>
     </form>

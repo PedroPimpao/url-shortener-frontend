@@ -1,19 +1,30 @@
+import 'server-only';
+
+import { cookies } from 'next/headers';
+
 const ACCESS_TOKEN_KEY = 'link-precision.access-token';
 const REFRESH_TOKEN_KEY = 'link-precision.refresh-token';
+const cookieOptions = {
+  httpOnly: true,
+  sameSite: 'lax' as const,
+  secure: process.env.NODE_ENV === 'production',
+  path: '/',
+};
 
-export function getAccessToken() {
-  if (typeof window === 'undefined') return null;
-  return window.localStorage.getItem(ACCESS_TOKEN_KEY);
+export async function getAccessToken() {
+  return (await cookies()).get(ACCESS_TOKEN_KEY)?.value ?? null;
 }
 
-export function saveSession(accessToken: string, refreshToken?: string) {
-  window.localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
-  if (refreshToken)
-    window.localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+export async function saveSession(accessToken: string, refreshToken?: string) {
+  const cookieStore = await cookies();
+  cookieStore.set(ACCESS_TOKEN_KEY, accessToken, cookieOptions);
+  if (refreshToken) {
+    cookieStore.set(REFRESH_TOKEN_KEY, refreshToken, cookieOptions);
+  }
 }
 
-export function clearSession() {
-  if (typeof window === 'undefined') return;
-  window.localStorage.removeItem(ACCESS_TOKEN_KEY);
-  window.localStorage.removeItem(REFRESH_TOKEN_KEY);
+export async function clearSession() {
+  const cookieStore = await cookies();
+  cookieStore.delete(ACCESS_TOKEN_KEY);
+  cookieStore.delete(REFRESH_TOKEN_KEY);
 }

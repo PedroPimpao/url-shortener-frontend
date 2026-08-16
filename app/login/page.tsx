@@ -1,8 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useActionState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { LockKeyhole, Mail } from 'lucide-react';
 import {
   AuthDivider,
@@ -19,29 +18,12 @@ import {
 import { FormMessage } from '@/components/form-message';
 import { Input } from '@/components/ui/input';
 import { PasswordInput } from '@/components/ui/password-input';
-import { api } from '@/lib/api';
-import { saveSession } from '@/lib/session';
 import SocialLoginOptions from '@/components/social-login-options';
+import { loginAction } from '@/app/_actions/auth';
+import { initialActionState } from '@/app/_actions/types';
 
 const LoginPage = () => {
-  const router = useRouter();
-  const [error, setError] = useState('');
-
-  const submit = async (formData: FormData) => {
-    setError('');
-    try {
-      const tokens = await api.login({
-        email: String(formData.get('email')).trim().toLowerCase(),
-        password: String(formData.get('password')),
-      });
-      saveSession(tokens.access_token, tokens.refresh_token);
-      router.replace('/dashboard');
-    } catch (reason) {
-      setError(
-        reason instanceof Error ? reason.message : 'Não foi possível entrar.',
-      );
-    }
-  };
+  const [state, formAction] = useActionState(loginAction, initialActionState);
 
   return (
     <AuthPageShell
@@ -56,8 +38,8 @@ const LoginPage = () => {
         title="Comece agora"
         description="Faça login na sua conta para continuar."
       >
-        <FormMessage>{error}</FormMessage>
-        <form action={submit}>
+        <FormMessage>{state.error}</FormMessage>
+        <form action={formAction}>
           <AuthField
             id="new-login-email"
             label="E-mail"

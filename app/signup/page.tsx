@@ -1,8 +1,7 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useActionState, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { LockKeyhole, Mail, UserRound } from 'lucide-react';
 import {
   AuthField,
@@ -19,7 +18,8 @@ import { FormMessage } from '@/components/form-message';
 import { Field, FieldDescription, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { PasswordInput } from '@/components/ui/password-input';
-import { api } from '@/lib/api';
+import { signupAction } from '@/app/_actions/auth';
+import { initialActionState } from '@/app/_actions/types';
 
 const PasswordStrength = ({ strength }: { strength: number }) => (
   <div className="flex gap-1.5">
@@ -33,8 +33,7 @@ const PasswordStrength = ({ strength }: { strength: number }) => (
 );
 
 const SignupPage = () => {
-  const router = useRouter();
-  const [error, setError] = useState('');
+  const [state, formAction] = useActionState(signupAction, initialActionState);
   const [password, setPassword] = useState('');
   const strength = useMemo(
     () =>
@@ -52,32 +51,6 @@ const SignupPage = () => {
     [password],
   );
 
-  const submit = async (formData: FormData) => {
-    if (!formData.get('agree')) {
-      setError(
-        'Você precisa aceitar os Termos de Uso e a Política de Privacidade.',
-      );
-      return;
-    }
-    setError('');
-    try {
-      const firstName = String(formData.get('firstName')).trim();
-      const lastName = String(formData.get('lastName')).trim();
-      await api.createAccount({
-        name: [firstName, lastName].filter(Boolean).join(' '),
-        email: String(formData.get('email')).trim().toLowerCase(),
-        password: String(formData.get('password')),
-      });
-      router.push('/login');
-    } catch (reason) {
-      setError(
-        reason instanceof Error
-          ? reason.message
-          : 'Não foi possível criar a conta.',
-      );
-    }
-  };
-
   return (
     <AuthPageShell
       backHref="/login"
@@ -92,8 +65,8 @@ const SignupPage = () => {
         description="Preencha os dados abaixo para começar gratuitamente."
         showProgress
       >
-        <FormMessage>{error}</FormMessage>
-        <form action={submit}>
+        <FormMessage>{state.error}</FormMessage>
+        <form action={formAction}>
           <div className="md:grid md:grid-cols-2 md:gap-3">
             <AuthField
               id="new-signup-first"

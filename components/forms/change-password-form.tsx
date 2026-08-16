@@ -1,8 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useActionState } from 'react';
 import Link from 'next/link';
-import { useForm } from 'react-hook-form';
 import { LockKeyhole, ShieldCheck } from 'lucide-react';
 import { FormMessage } from '@/components/form-message';
 import { Button } from '@/components/ui/button';
@@ -13,52 +12,20 @@ import {
   FieldLabel,
 } from '@/components/ui/field';
 import { PasswordInput } from '@/components/ui/password-input';
-import { api } from '@/lib/api';
+import { changePasswordAction } from '@/app/_actions/user';
+import { initialActionState } from '@/app/_actions/types';
 
-type ChangePasswordValues = {
-  currentPassword: string;
-  newPassword: string;
-  confirmation: string;
-};
-
-export function ChangePasswordForm({ email }: { email: string }) {
-  const [error, setError] = useState('');
-  const [message, setMessage] = useState('');
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { isSubmitting },
-  } = useForm<ChangePasswordValues>();
-
-  async function submit(values: ChangePasswordValues) {
-    if (values.newPassword !== values.confirmation) {
-      setError('The new password and confirmation must match.');
-      return;
-    }
-    setError('');
-    setMessage('');
-    try {
-      await api.updatePassword(
-        email,
-        values.currentPassword,
-        values.newPassword,
-        values.confirmation,
-      );
-      reset();
-      setMessage('Your password has been changed successfully.');
-    } catch (reason) {
-      setError(
-        reason instanceof Error ? reason.message : 'Unable to change password.',
-      );
-    }
-  }
+export function ChangePasswordForm() {
+  const [state, formAction, isPending] = useActionState(
+    changePasswordAction,
+    initialActionState,
+  );
 
   return (
     <>
-      <FormMessage>{error}</FormMessage>
-      <FormMessage success>{message}</FormMessage>
-      <form onSubmit={handleSubmit(submit)} className="px-6 py-7">
+      <FormMessage>{state.error}</FormMessage>
+      <FormMessage success>{state.message}</FormMessage>
+      <form action={formAction} className="px-6 py-7">
         <FieldGroup>
           <Field>
             <FieldLabel
@@ -69,8 +36,9 @@ export function ChangePasswordForm({ email }: { email: string }) {
             </FieldLabel>
             <PasswordInput
               id="current-password"
+              name="currentPassword"
               autoComplete="current-password"
-              {...register('currentPassword', { required: true })}
+              required
             />
           </Field>
           <Field>
@@ -82,12 +50,11 @@ export function ChangePasswordForm({ email }: { email: string }) {
             </FieldLabel>
             <PasswordInput
               id="new-password"
+              name="newPassword"
               autoComplete="new-password"
-              {...register('newPassword', {
-                required: true,
-                minLength: 8,
-                maxLength: 72,
-              })}
+              required
+              minLength={8}
+              maxLength={72}
             />
             <FieldDescription className="text-xs">
               Use between 8 and 72 characters.
@@ -102,12 +69,11 @@ export function ChangePasswordForm({ email }: { email: string }) {
             </FieldLabel>
             <PasswordInput
               id="confirmation"
+              name="confirmation"
               autoComplete="new-password"
-              {...register('confirmation', {
-                required: true,
-                minLength: 8,
-                maxLength: 72,
-              })}
+              required
+              minLength={8}
+              maxLength={72}
             />
           </Field>
         </FieldGroup>
@@ -129,11 +95,11 @@ export function ChangePasswordForm({ email }: { email: string }) {
           </Button>
           <Button
             type="submit"
-            disabled={isSubmitting}
+            disabled={isPending}
             className="h-10 bg-indigo-600 px-5 hover:bg-indigo-700"
           >
             <LockKeyhole />
-            {isSubmitting ? 'Changing...' : 'Change password'}
+            {isPending ? 'Changing...' : 'Change password'}
           </Button>
         </div>
       </form>

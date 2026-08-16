@@ -2,10 +2,10 @@
 
 import {
   useCallback,
+  useActionState,
   useEffect,
   useRef,
   useState,
-  type SubmitEvent,
 } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -31,15 +31,26 @@ import { FormMessage } from '@/components/form-message';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { api, ApiError, type ShortUrl } from '@/lib/api';
+import type { ShortUrl } from '@/lib/api';
 import { getShortUrl, getShortUrlPath } from '@/lib/short-url';
+import {
+  createShortUrlAction,
+  generateQrCodeAction,
+  listUrlsAction,
+  updateUrlTitleAction,
+} from '@/app/_actions/urls';
+import { getCurrentUserAction } from '@/app/_actions/user';
+import { initialActionState } from '@/app/_actions/types';
 
 export default function DashboardPage() {
   const router = useRouter();
   const [authLoading, setAuthLoading] = useState(true);
   const [urls, setUrls] = useState<ShortUrl[]>([]);
   const [error, setError] = useState('');
-  const [creating, setCreating] = useState(false);
+  const [createState, createFormAction, creating] = useActionState(
+    createShortUrlAction,
+    initialActionState,
+  );
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [editingCode, setEditingCode] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState('');
@@ -49,29 +60,22 @@ export default function DashboardPage() {
   const copyFeedbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const loadUrls = useCallback(async () => {
     try {
-      const result = await api.listUrls();
-      setUrls(result.urls);
-    } catch (reason) {
-      if (!(reason instanceof ApiError && reason.status === 404))
-        setError(
-          reason instanceof Error ? reason.message : 'Unable to load links.',
-        );
+      const result = await listUrlsAction();
+      if (result.error) setError(result.error);
+      else setUrls(result.data ?? []);
+    } catch {
+      setError('Unable to load links.');
     }
   }, []);
   useEffect(() => {
-    api
-      .me()
-      .then(() => api.listUrls())
-      .then((result) => setUrls(result.urls))
-      .catch((reason) => {
-        if (reason instanceof ApiError && reason.status === 401) {
-          router.replace('/login');
-        } else if (!(reason instanceof ApiError && reason.status === 404)) {
-          setError(
-            reason instanceof Error ? reason.message : 'Unable to load links.',
-          );
-        }
+    getCurrentUserAction()
+      .then(async (user) => {
+        if (!user) return router.replace('/login');
+        const result = await listUrlsAction();
+        if (result.error) setError(result.error);
+        else setUrls(result.data ?? []);
       })
+      .catch(() => setError('Unable to load links.'))
       .finally(() => setAuthLoading(false));
   }, [router]);
   useEffect(() => {
@@ -79,32 +83,18 @@ export default function DashboardPage() {
       if (copyFeedbackTimer.current) clearTimeout(copyFeedbackTimer.current);
     };
   }, []);
-  async function create(event: SubmitEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setError('');
-    setCreating(true);
-    const form = event.currentTarget;
-    const data = new FormData(form);
-    try {
-      await api.createShortUrl(String(data.get('url')).trim());
-      form.reset();
-      await loadUrls();
-    } catch (reason) {
-      setError(
-        reason instanceof Error ? reason.message : 'Unable to shorten URL.',
-      );
-    } finally {
-      setCreating(false);
-    }
-  }
+  useEffect(() => {
+    if (createState.message) queueMicrotask(() => void loadUrls());
+  }, [createState, loadUrls]);
   async function generateQrCode(code: string) {
     setError('');
     setGeneratingQrCode(code);
     try {
-      const result = await api.generateQrCode(code);
-      const imageSource = result.qrcode.startsWith('data:')
-        ? result.qrcode
-        : `data:image/png;base64,${result.qrcode}`;
+      const result = await generateQrCodeAction(code);
+      if (result.error || !result.data) throw new Error(result.error);
+      const imageSource = result.data.startsWith('data:')
+        ? result.data
+        : `data:image/png;base64,${result.data}`;
       setQrCodes((currentQrCodes) => ({
         ...currentQrCodes,
         [code]: imageSource,
@@ -150,23 +140,19 @@ export default function DashboardPage() {
     setEditingCode(null);
     setEditingTitle('');
   }
-  async function updateTitle(
-    event: SubmitEvent<HTMLFormElement>,
-    code: string,
-  ) {
-    event.preventDefault();
-    const title = editingTitle.trim();
+  async function updateTitle(formData: FormData, code: string) {
+    const title = String(formData.get('title') ?? '').trim();
     if (!title) return;
 
     setSavingTitle(true);
     setError('');
     try {
-      const result = await api.updateUrlTitle(code, title);
+      const result = await updateUrlTitleAction(code, {}, formData);
+      if (result.error || !result.data) throw new Error(result.error);
+      const newTitle = result.data.title;
       setUrls((currentUrls) =>
         currentUrls.map((item) =>
-          item['short-code'] === code
-            ? { ...item, title: result['new-title'] }
-            : item,
+          item['short-code'] === code ? { ...item, title: newTitle } : item,
         ),
       );
       cancelEditingTitle();
@@ -187,8 +173,8 @@ export default function DashboardPage() {
           <p className="mx-auto mb-7 max-w-95 text-[15px] leading-5.5 text-[#6b7280]">
             Paste your long URL below to create a concise, trackable link.
           </p>
-          <FormMessage>{error}</FormMessage>
-          <form onSubmit={create}>
+          <FormMessage>{createState.error ?? error}</FormMessage>
+          <form action={createFormAction}>
             <div className="mb-4 flex items-center gap-2 rounded-lg border border-[#e0e2ea] bg-[#f9fafc] px-3.5">
               <Link2 className="size-4 text-[#9aa0ad]" />
               <Input
@@ -230,12 +216,13 @@ export default function DashboardPage() {
                 >
                   {editingCode === item['short-code'] ? (
                     <form
-                      onSubmit={(event) =>
-                        updateTitle(event, item['short-code'])
+                      action={(formData) =>
+                        updateTitle(formData, item['short-code'])
                       }
                       className="mb-3 flex items-center gap-2"
                     >
                       <Input
+                        name="title"
                         value={editingTitle}
                         required
                         autoFocus

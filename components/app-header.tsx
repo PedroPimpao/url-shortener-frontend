@@ -1,15 +1,14 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { clearSession } from '@/lib/session';
+import { logoutAction } from '@/app/_actions/auth';
 import { cn } from '@/lib/utils';
 import Logo from './logo';
 
 export function AppHeader() {
   const pathname = usePathname();
-  const router = useRouter();
   return (
     <header className="flex min-h-20 items-center justify-between border-b border-[#e5e7ef] bg-white px-5 md:px-10">
       <Link href="/dashboard">
@@ -37,16 +36,15 @@ export function AppHeader() {
           My Profile
         </Link>
       </nav>
-      <Button
-        variant="outline"
-        className="h-9 border-[#d8dae5] px-4.5 font-semibold text-indigo-700"
-        onClick={() => {
-          clearSession();
-          router.replace('/login');
-        }}
-      >
-        Logout
-      </Button>
+      <form action={logoutAction}>
+        <Button
+          type="submit"
+          variant="outline"
+          className="h-9 border-[#d8dae5] px-4.5 font-semibold text-indigo-700"
+        >
+          Logout
+        </Button>
+      </form>
     </header>
   );
 }

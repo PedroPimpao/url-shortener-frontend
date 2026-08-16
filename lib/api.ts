@@ -1,3 +1,5 @@
+import 'server-only';
+
 import { clearSession, getAccessToken } from '@/lib/session';
 
 const API_URL = (
@@ -22,7 +24,7 @@ async function request<T>(path: string, options: ApiOptions = {}): Promise<T> {
   const headers = new Headers(options.headers);
   headers.set('Content-Type', 'application/json');
   if (options.authenticated) {
-    const token = getAccessToken();
+    const token = await getAccessToken();
     if (!token) throw new ApiError('Sua sessão expirou. Entre novamente.', 401);
     headers.set('Authorization', `Bearer ${token}`);
   }
@@ -41,7 +43,7 @@ async function request<T>(path: string, options: ApiOptions = {}): Promise<T> {
     detail?: string | ValidationIssue[];
   };
   if (!response.ok) {
-    if (response.status === 401 && options.authenticated) clearSession();
+    if (response.status === 401 && options.authenticated) await clearSession();
     const detail = Array.isArray(data.detail)
       ? data.detail
           .map((item) => item.msg)
@@ -61,6 +63,11 @@ export type ShortUrl = {
   'original-url': string;
   'short-code': string;
   clicks: number;
+  title: string;
+};
+
+type ShortUrlResponse = Omit<ShortUrl, 'title'> & {
+  url_title?: string;
   title?: string;
 };
 
@@ -99,8 +106,19 @@ export const api = {
         new_password_confirmation: confirmation,
       },
     }),
-  listUrls: () =>
-    request<{ urls: ShortUrl[] }>('/url/list_urls', { authenticated: true }),
+  listUrls: async () => {
+    const result = await request<{ urls: ShortUrlResponse[] }>(
+      '/url/list_urls',
+      { authenticated: true },
+    );
+
+    return {
+      urls: result.urls.map(({ url_title, title, ...url }) => ({
+        ...url,
+        title: title ?? url_title ?? '',
+      })),
+    };
+  },
   createShortUrl: (originalUrl: string) =>
     request<{ 'short-code': string; 'short-url': string }>(
       '/url/create-short-url',

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useActionState, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { REGEXP_ONLY_DIGITS } from 'input-otp';
 import { CheckCircle2, LockKeyhole, Mail } from 'lucide-react';
@@ -20,7 +20,7 @@ import {
   InputOTPSlot,
 } from '@/components/ui/input-otp';
 import { PasswordInput } from '@/components/ui/password-input';
-import { api } from '@/lib/api';
+import { passwordRecoveryAction } from '@/app/_actions/auth';
 
 type Step = 'request' | 'verify' | 'complete' | 'done';
 
@@ -28,14 +28,13 @@ const formatTime = (seconds: number) =>
   `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
 
 export const ForgotPasswordForm = () => {
-  const [step, setStep] = useState<Step>('request');
-  const [email, setEmail] = useState('');
+  const [state, formAction] = useActionState(passwordRecoveryAction, {
+    data: { step: 'request' as const },
+  });
+  const step: Step = state.data?.step ?? 'request';
+  const email = state.data?.email ?? '';
   const [otp, setOtp] = useState('');
-  const [token, setToken] = useState('');
   const [secondsLeft, setSecondsLeft] = useState(120);
-  const [message, setMessage] = useState('');
-  const [error, setError] = useState('');
-  const [isResending, setIsResending] = useState(false);
 
   useEffect(() => {
     if (step !== 'verify' || secondsLeft === 0) return;
@@ -45,65 +44,6 @@ export const ForgotPasswordForm = () => {
     );
     return () => window.clearInterval(timer);
   }, [step, secondsLeft]);
-
-  const submit = async (formData: FormData) => {
-    setError('');
-    setMessage('');
-    try {
-      if (step === 'request') {
-        const normalizedEmail = String(formData.get('email'))
-          .trim()
-          .toLowerCase();
-        const result = await api.requestPasswordReset(normalizedEmail);
-        setEmail(normalizedEmail);
-        setMessage(result.message);
-        setSecondsLeft(120);
-        setStep('verify');
-        return;
-      }
-      if (step === 'verify') {
-        const result = await api.verifyPasswordReset(email, otp);
-        setToken(result.reset_token);
-        setStep('complete');
-        return;
-      }
-      const password = String(formData.get('password'));
-      const confirmation = String(formData.get('confirmation'));
-      if (password !== confirmation) {
-        setError('A nova senha e a confirmação precisam ser iguais.');
-        return;
-      }
-      await api.completePasswordReset(token, password, confirmation);
-      setStep('done');
-    } catch (reason) {
-      setError(
-        reason instanceof Error
-          ? reason.message
-          : 'Não foi possível redefinir sua senha.',
-      );
-    }
-  };
-
-  const resendCode = async () => {
-    if (isResending || secondsLeft > 0) return;
-    setError('');
-    setMessage('');
-    setIsResending(true);
-    try {
-      const result = await api.requestPasswordReset(email);
-      setMessage(result.message);
-      setOtp('');
-      setSecondsLeft(120);
-    } catch (reason) {
-      setError(
-        reason instanceof Error
-          ? reason.message
-          : 'Não foi possível reenviar o código.',
-      );
-    } finally {
-      setIsResending(false);
-    }
-  };
 
   if (step === 'done') {
     return (
@@ -126,9 +66,16 @@ export const ForgotPasswordForm = () => {
 
   return (
     <>
-      <FormMessage>{error}</FormMessage>
-      <FormMessage success>{message}</FormMessage>
-      <form action={submit}>
+      <FormMessage>{state.error}</FormMessage>
+      <FormMessage success>
+        {state.message
+          ? `${state.message}${state.data?.otp ? `. Código: ${state.data.otp}` : ''}`
+          : ''}
+      </FormMessage>
+      <form action={formAction}>
+        <input type="hidden" name="step" value={step} />
+        <input type="hidden" name="email" value={email} />
+        <input type="hidden" name="token" value={state.data?.token ?? ''} />
         {step === 'request' && (
           <>
             <AuthField id="recovery-email" label="E-mail" icon={Mail}>
@@ -183,13 +130,18 @@ export const ForgotPasswordForm = () => {
                 : 'O código expirou. Solicite um novo código.'}
             </FieldDescription>
             <Button
-              type="button"
+              type="submit"
+              name="intent"
+              value="resend"
               variant="link"
-              disabled={secondsLeft > 0 || isResending}
-              onClick={resendCode}
+              disabled={secondsLeft > 0}
+              onClick={() => {
+                setOtp('');
+                setSecondsLeft(120);
+              }}
               className="mt-2 text-[#3d5afe] disabled:opacity-50"
             >
-              {isResending ? 'Reenviando...' : 'Reenviar código'}
+              Reenviar código
             </Button>
             <div className="mt-5">
               <AuthSubmitButton

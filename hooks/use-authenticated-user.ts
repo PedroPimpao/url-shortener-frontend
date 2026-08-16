@@ -1,17 +1,19 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { api, type User } from '@/lib/api';
+import type { User } from '@/lib/api';
+import { getCurrentUserAction } from '@/app/_actions/user';
 
 export function useAuthenticatedUser() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
-    api
-      .me()
-      .then(setUser)
-      .catch(() => router.replace('/login'))
+    getCurrentUserAction()
+      .then((currentUser) => {
+        if (!currentUser) router.replace('/login');
+        else setUser(currentUser);
+      })
       .finally(() => setLoading(false));
   }, [router]);
   return { user, setUser, loading };

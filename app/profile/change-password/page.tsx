@@ -42,7 +42,7 @@ export default function ChangePasswordPage() {
                   </p>
                 </div>
               </div>
-              <ChangePasswordForm email={user.email} />
+              <ChangePasswordForm />
             </Card>
           )
         )}
