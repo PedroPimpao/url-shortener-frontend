@@ -1,199 +1,259 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useForm } from 'react-hook-form';
-import { ArrowLeft, ArrowRight, KeyRound, LockKeyhole } from 'lucide-react';
+import { REGEXP_ONLY_DIGITS } from 'input-otp';
+import { CheckCircle2, LockKeyhole, Mail } from 'lucide-react';
+import {
+  AuthField,
+  AuthSubmitButton,
+  MobileAuthLink,
+  authInputClassName,
+} from '@/components/auth/auth-form-controls';
 import { FormMessage } from '@/components/form-message';
 import { Button } from '@/components/ui/button';
-import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
+import { FieldDescription } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from '@/components/ui/input-otp';
 import { PasswordInput } from '@/components/ui/password-input';
 import { api } from '@/lib/api';
 
 type Step = 'request' | 'verify' | 'complete' | 'done';
-type ForgotPasswordValues = {
-  email: string;
-  otp: string;
-  password: string;
-  confirmation: string;
-};
 
-export function ForgotPasswordForm() {
+const formatTime = (seconds: number) =>
+  `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
+
+export const ForgotPasswordForm = () => {
   const [step, setStep] = useState<Step>('request');
   const [email, setEmail] = useState('');
+  const [otp, setOtp] = useState('');
   const [token, setToken] = useState('');
+  const [secondsLeft, setSecondsLeft] = useState(120);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
-  const {
-    register,
-    handleSubmit,
-    formState: { isSubmitting },
-  } = useForm<ForgotPasswordValues>();
+  const [isResending, setIsResending] = useState(false);
 
-  async function submit(values: ForgotPasswordValues) {
+  useEffect(() => {
+    if (step !== 'verify' || secondsLeft === 0) return;
+    const timer = window.setInterval(
+      () => setSecondsLeft((current) => Math.max(0, current - 1)),
+      1000,
+    );
+    return () => window.clearInterval(timer);
+  }, [step, secondsLeft]);
+
+  const submit = async (formData: FormData) => {
     setError('');
     setMessage('');
     try {
       if (step === 'request') {
-        const normalizedEmail = values.email.trim().toLowerCase();
+        const normalizedEmail = String(formData.get('email'))
+          .trim()
+          .toLowerCase();
         const result = await api.requestPasswordReset(normalizedEmail);
         setEmail(normalizedEmail);
-        setMessage(result.otp ? `Study OTP: ${result.otp}` : result.message);
+        setMessage(result.message);
+        setSecondsLeft(120);
         setStep('verify');
-      } else if (step === 'verify') {
-        const result = await api.verifyPasswordReset(email, values.otp);
+        return;
+      }
+      if (step === 'verify') {
+        const result = await api.verifyPasswordReset(email, otp);
         setToken(result.reset_token);
         setStep('complete');
-      } else if (step === 'complete') {
-        if (values.password !== values.confirmation) {
-          setError('The new password and confirmation must match.');
-          return;
-        }
-        await api.completePasswordReset(
-          token,
-          values.password,
-          values.confirmation,
-        );
-        setMessage('Password reset successfully.');
-        setStep('done');
+        return;
       }
+      const password = String(formData.get('password'));
+      const confirmation = String(formData.get('confirmation'));
+      if (password !== confirmation) {
+        setError('A nova senha e a confirmação precisam ser iguais.');
+        return;
+      }
+      await api.completePasswordReset(token, password, confirmation);
+      setStep('done');
     } catch (reason) {
       setError(
-        reason instanceof Error ? reason.message : 'Unable to reset password.',
+        reason instanceof Error
+          ? reason.message
+          : 'Não foi possível redefinir sua senha.',
       );
     }
-  }
+  };
 
-  const title =
-    step === 'request'
-      ? 'Reset your password'
-      : step === 'verify'
-        ? 'Enter recovery code'
-        : step === 'complete'
-          ? 'Choose a new password'
-          : 'Password updated';
-  const description =
-    step === 'request'
-      ? "Enter your email address and we'll send you a link to reset your password."
-      : step === 'verify'
-        ? `Enter the six-digit code generated for ${email}.`
-        : step === 'complete'
-          ? 'Create a secure password with at least 8 characters.'
-          : 'You can now sign in with your new password.';
+  const resendCode = async () => {
+    if (isResending || secondsLeft > 0) return;
+    setError('');
+    setMessage('');
+    setIsResending(true);
+    try {
+      const result = await api.requestPasswordReset(email);
+      setMessage(result.message);
+      setOtp('');
+      setSecondsLeft(120);
+    } catch (reason) {
+      setError(
+        reason instanceof Error
+          ? reason.message
+          : 'Não foi possível reenviar o código.',
+      );
+    } finally {
+      setIsResending(false);
+    }
+  };
+
+  if (step === 'done') {
+    return (
+      <div className="text-center">
+        <CheckCircle2 className="mx-auto mb-4 size-12 text-emerald-500" />
+        <h3 className="text-xl font-bold">Senha atualizada</h3>
+        <p className="mt-2 mb-6 text-sm leading-6 text-[#8992a9]">
+          Sua senha foi redefinida. Você já pode entrar novamente.
+        </p>
+        <Button
+          nativeButton={false}
+          render={<Link href="/login" />}
+          className="h-12.5 w-full rounded-[14px] bg-linear-to-r from-[#3d5afe] to-[#2541db] font-bold text-white"
+        >
+          Ir para o login
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <>
-      <div className="mx-auto mb-4.5 flex size-12 items-center justify-center text-indigo-600">
-        {step === 'complete' ? (
-          <KeyRound className="size-7" />
-        ) : (
-          <LockKeyhole className="size-7" />
-        )}
-      </div>
-      <h1 className="mb-2.5 text-[22px] font-bold">{title}</h1>
-      <p className="mb-6.5 text-sm leading-5 text-[#6b7280]">{description}</p>
       <FormMessage>{error}</FormMessage>
       <FormMessage success>{message}</FormMessage>
-      {step !== 'done' && (
-        <form onSubmit={handleSubmit(submit)} className="text-left">
-          <FieldGroup className="gap-4.5">
-            {step === 'request' && (
-              <Field>
-                <FieldLabel htmlFor="email" className="text-[13px] font-bold">
-                  Email Address
-                </FieldLabel>
-                <div className="rounded-lg bg-[#eef0f5] px-3.5">
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="name@company.com"
-                    className="border-0 bg-transparent px-0 focus-visible:ring-0"
-                    {...register('email', { required: true })}
+      <form action={submit}>
+        {step === 'request' && (
+          <>
+            <AuthField id="recovery-email" label="E-mail" icon={Mail}>
+              <Input
+                id="recovery-email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                placeholder="voce@email.com"
+                required
+                className={authInputClassName}
+              />
+            </AuthField>
+            <div className="mt-6">
+              <AuthSubmitButton
+                idleLabel="Enviar código"
+                loadingLabel="Enviando..."
+              />
+            </div>
+          </>
+        )}
+
+        {step === 'verify' && (
+          <div className="text-center">
+            <p className="text-sm leading-6 text-[#8992a9]">
+              Enviamos um código de verificação de 6 dígitos para
+            </p>
+            <p className="mt-1 font-semibold text-[#0b1130]">{email}</p>
+            <InputOTP
+              name="otp"
+              maxLength={6}
+              pattern={REGEXP_ONLY_DIGITS}
+              value={otp}
+              onChange={setOtp}
+              containerClassName="my-8 justify-center"
+              aria-label="Código de verificação de seis dígitos"
+              required
+            >
+              <InputOTPGroup className="gap-2">
+                {[0, 1, 2, 3, 4, 5].map((index) => (
+                  <InputOTPSlot
+                    key={index}
+                    index={index}
+                    className="size-11 rounded-xl border border-[#e7eaf3] bg-[#f6f8fc] text-base font-bold shadow-sm first:rounded-xl first:border last:rounded-xl data-[active=true]:border-[#3d5afe] data-[active=true]:ring-3 data-[active=true]:ring-[#3d5afe]/15"
                   />
-                </div>
-              </Field>
-            )}
-            {step === 'verify' && (
-              <Field>
-                <FieldLabel htmlFor="otp" className="text-[13px] font-bold">
-                  Recovery Code
-                </FieldLabel>
-                <div className="rounded-lg bg-[#eef0f5] px-3.5">
-                  <Input
-                    id="otp"
-                    inputMode="numeric"
-                    maxLength={6}
-                    placeholder="123456"
-                    className="border-0 bg-transparent px-0 text-center tracking-[0.4em] focus-visible:ring-0"
-                    {...register('otp', {
-                      required: true,
-                      pattern: /^[0-9]{6}$/,
-                    })}
-                  />
-                </div>
-              </Field>
-            )}
-            {step === 'complete' && (
-              <>
-                <Field>
-                  <FieldLabel
-                    htmlFor="password"
-                    className="text-[13px] font-bold"
-                  >
-                    New Password
-                  </FieldLabel>
-                  <PasswordInput
-                    id="password"
-                    {...register('password', {
-                      required: true,
-                      minLength: 8,
-                      maxLength: 72,
-                    })}
-                  />
-                </Field>
-                <Field>
-                  <FieldLabel
-                    htmlFor="confirmation"
-                    className="text-[13px] font-bold"
-                  >
-                    Confirm New Password
-                  </FieldLabel>
-                  <PasswordInput
-                    id="confirmation"
-                    {...register('confirmation', {
-                      required: true,
-                      minLength: 8,
-                      maxLength: 72,
-                    })}
-                  />
-                </Field>
-              </>
-            )}
-          </FieldGroup>
-          <Button
-            type="submit"
-            disabled={isSubmitting}
-            className="mt-5.5 mb-5 h-12 w-full bg-indigo-600 text-[15px] font-semibold hover:bg-indigo-700"
-          >
-            {isSubmitting
-              ? 'Please wait...'
-              : step === 'request'
-                ? 'Send Recovery Code'
-                : step === 'verify'
-                  ? 'Verify Code'
-                  : 'Reset Password'}
-            <ArrowRight />
-          </Button>
-        </form>
-      )}
-      <Link
-        href="/login"
-        className="inline-flex items-center gap-1.5 text-sm text-[#6b7280] hover:text-indigo-700"
-      >
-        <ArrowLeft className="size-4" />
-        Back to login
-      </Link>
+                ))}
+              </InputOTPGroup>
+            </InputOTP>
+            <FieldDescription className="text-center text-xs">
+              {secondsLeft > 0
+                ? `O código expira em ${formatTime(secondsLeft)}`
+                : 'O código expirou. Solicite um novo código.'}
+            </FieldDescription>
+            <Button
+              type="button"
+              variant="link"
+              disabled={secondsLeft > 0 || isResending}
+              onClick={resendCode}
+              className="mt-2 text-[#3d5afe] disabled:opacity-50"
+            >
+              {isResending ? 'Reenviando...' : 'Reenviar código'}
+            </Button>
+            <div className="mt-5">
+              <AuthSubmitButton
+                idleLabel="Verificar código"
+                loadingLabel="Verificando..."
+              />
+            </div>
+          </div>
+        )}
+
+        {step === 'complete' && (
+          <>
+            <AuthField
+              id="recovery-password"
+              label="Nova senha"
+              icon={LockKeyhole}
+              className="mb-4"
+            >
+              <PasswordInput
+                id="recovery-password"
+                name="password"
+                autoComplete="new-password"
+                placeholder="Crie uma senha forte"
+                required
+                minLength={8}
+                maxLength={72}
+                className={authInputClassName}
+              />
+            </AuthField>
+            <AuthField
+              id="recovery-confirmation"
+              label="Confirme a nova senha"
+              icon={LockKeyhole}
+            >
+              <PasswordInput
+                id="recovery-confirmation"
+                name="confirmation"
+                autoComplete="new-password"
+                placeholder="Repita a nova senha"
+                required
+                minLength={8}
+                maxLength={72}
+                className={authInputClassName}
+              />
+            </AuthField>
+            <div className="mt-6">
+              <AuthSubmitButton
+                idleLabel="Redefinir senha"
+                loadingLabel="Redefinindo..."
+              />
+            </div>
+          </>
+        )}
+      </form>
+      <MobileAuthLink href="/login">Voltar ao login</MobileAuthLink>
+      <p className="mt-5 text-center text-sm text-[#8992a9] max-md:hidden">
+        Lembrou sua senha?{' '}
+        <Link
+          href="/login"
+          className="font-bold text-[#3d5afe] hover:underline"
+        >
+          Voltar ao login
+        </Link>
+      </p>
     </>
   );
-}
+};
