@@ -9,14 +9,17 @@ import {
 } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   BarChart3,
   CalendarDays,
   Check,
   Clipboard,
+  Download,
   Grid2X2,
   Link2,
   List,
+  LoaderCircle,
   Pencil,
   QrCode,
   Scissors,
@@ -41,6 +44,8 @@ export default function DashboardPage() {
   const [editingCode, setEditingCode] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState('');
   const [savingTitle, setSavingTitle] = useState(false);
+  const [qrCodes, setQrCodes] = useState<Record<string, string>>({});
+  const [generatingQrCode, setGeneratingQrCode] = useState<string | null>(null);
   const copyFeedbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const loadUrls = useCallback(async () => {
     try {
@@ -92,20 +97,36 @@ export default function DashboardPage() {
       setCreating(false);
     }
   }
-  async function qr(code: string) {
+  async function generateQrCode(code: string) {
+    setError('');
+    setGeneratingQrCode(code);
     try {
       const result = await api.generateQrCode(code);
-      const link = document.createElement('a');
-      link.href = `data:image/png;base64,${result.qrcode}`;
-      link.download = `${code}-qrcode.png`;
-      link.click();
+      const imageSource = result.qrcode.startsWith('data:')
+        ? result.qrcode
+        : `data:image/png;base64,${result.qrcode}`;
+      setQrCodes((currentQrCodes) => ({
+        ...currentQrCodes,
+        [code]: imageSource,
+      }));
     } catch (reason) {
       setError(
         reason instanceof Error
           ? reason.message
           : 'Unable to generate QR Code.',
       );
+    } finally {
+      setGeneratingQrCode(null);
     }
+  }
+  function downloadQrCode(code: string) {
+    const imageSource = qrCodes[code];
+    if (!imageSource) return;
+
+    const link = document.createElement('a');
+    link.href = imageSource;
+    link.download = `${code}-qrcode.png`;
+    link.click();
   }
   async function copyShortUrl(code: string) {
     try {
@@ -308,13 +329,56 @@ export default function DashboardPage() {
                       </span>
                     </div>
                     <button
-                      onClick={() => qr(item['short-code'])}
-                      className="flex cursor-pointer items-center gap-1 font-semibold text-indigo-600"
+                      type="button"
+                      disabled={generatingQrCode === item['short-code']}
+                      onClick={() => generateQrCode(item['short-code'])}
+                      className="flex cursor-pointer items-center gap-1 font-semibold text-indigo-600 disabled:cursor-wait disabled:opacity-60"
                     >
-                      <QrCode className="size-4" />
-                      QR Code
+                      {generatingQrCode === item['short-code'] ? (
+                        <LoaderCircle className="size-4 animate-spin" />
+                      ) : (
+                        <QrCode className="size-4" />
+                      )}
+                      {generatingQrCode === item['short-code']
+                        ? 'Generating...'
+                        : qrCodes[item['short-code']]
+                          ? 'Regenerate QR Code'
+                          : 'QR Code'}
                     </button>
                   </div>
+                  {qrCodes[item['short-code']] && (
+                    <div className="mt-4 flex flex-col items-center gap-4 rounded-xl border border-indigo-100 bg-indigo-50/60 p-4 sm:flex-row">
+                      <div className="shrink-0 rounded-xl bg-white p-2 shadow-sm">
+                        <Image
+                          src={qrCodes[item['short-code']]}
+                          alt={`QR Code for ${getShortUrl(item['short-code'])}`}
+                          width={128}
+                          height={128}
+                          unoptimized
+                          className="size-32"
+                        />
+                      </div>
+                      <div className="min-w-0 text-center sm:text-left">
+                        <p className="font-semibold text-[#242633]">
+                          QR Code ready
+                        </p>
+                        <p className="mt-1 mb-3 text-xs text-[#6b7280]">
+                          Scan it to open your shortened link or download the
+                          image.
+                        </p>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => downloadQrCode(item['short-code'])}
+                          className="border-indigo-200 bg-white text-indigo-600 hover:bg-indigo-100 hover:text-indigo-700"
+                        >
+                          <Download className="size-4" />
+                          Download PNG
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </article>
               ))
             )}
