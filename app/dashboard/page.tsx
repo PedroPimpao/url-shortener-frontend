@@ -1,93 +1,135 @@
 'use client';
 
 import {
-  useCallback,
   useActionState,
+  useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
+  type ReactElement,
 } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
-  BarChart3,
-  CalendarDays,
+  Activity,
   Check,
   Clipboard,
   Download,
-  Grid2X2,
+  ExternalLink,
   Link2,
-  List,
   LoaderCircle,
-  Pencil,
+  LogOut,
   QrCode,
   Scissors,
-  SlidersHorizontal,
-  X,
+  Search,
+  Trophy,
 } from 'lucide-react';
-import { AppHeader } from '@/components/app-header';
-import { FormMessage } from '@/components/form-message';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import type { ShortUrl } from '@/lib/api';
-import { getShortUrl, getShortUrlPath } from '@/lib/short-url';
 import {
   createShortUrlAction,
   generateQrCodeAction,
   listUrlsAction,
-  updateUrlTitleAction,
 } from '@/app/_actions/urls';
-import { getCurrentUserAction } from '@/app/_actions/user';
 import { initialActionState } from '@/app/_actions/types';
+import { logoutAction } from '@/app/_actions/auth';
+import { FormMessage } from '@/components/form-message';
+import Logo from '@/components/logo';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { useAuthenticatedUser } from '@/hooks/use-authenticated-user';
+import type { ShortUrl } from '@/lib/api';
+import { getShortUrl, getShortUrlPath } from '@/lib/short-url';
 
-export default function DashboardPage() {
-  const router = useRouter();
-  const [authLoading, setAuthLoading] = useState(true);
+type SortMode = 'recent' | 'clicks' | 'oldest' | 'az';
+
+const getInitials = (name?: string) =>
+  (name || 'Usuário')
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase();
+
+export default function NewDashboardPage() {
+  const { user, loading: userLoading } = useAuthenticatedUser();
   const [urls, setUrls] = useState<ShortUrl[]>([]);
-  const [error, setError] = useState('');
-  const [createState, createFormAction, creating] = useActionState(
+  const [loadingUrls, setLoadingUrls] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const [query, setQuery] = useState('');
+  const [sortMode, setSortMode] = useState<SortMode>('recent');
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [qrCodes, setQrCodes] = useState<Record<string, string>>({});
+  const [generatingQrCode, setGeneratingQrCode] = useState<string | null>(null);
+  const copyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const [createState, createAction, isCreating] = useActionState(
     createShortUrlAction,
     initialActionState,
   );
-  const [copiedCode, setCopiedCode] = useState<string | null>(null);
-  const [editingCode, setEditingCode] = useState<string | null>(null);
-  const [editingTitle, setEditingTitle] = useState('');
-  const [savingTitle, setSavingTitle] = useState(false);
-  const [qrCodes, setQrCodes] = useState<Record<string, string>>({});
-  const [generatingQrCode, setGeneratingQrCode] = useState<string | null>(null);
-  const copyFeedbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const loadUrls = useCallback(async () => {
-    try {
-      const result = await listUrlsAction();
-      if (result.error) setError(result.error);
-      else setUrls(result.data ?? []);
-    } catch {
-      setError('Unable to load links.');
+    const result = await listUrlsAction();
+    if (result.error) setLoadError(result.error);
+    else {
+      setLoadError('');
+      setUrls(result.data ?? []);
     }
+    setLoadingUrls(false);
   }, []);
+
   useEffect(() => {
-    getCurrentUserAction()
-      .then(async (user) => {
-        if (!user) return router.replace('/login');
-        const result = await listUrlsAction();
-        if (result.error) setError(result.error);
-        else setUrls(result.data ?? []);
-      })
-      .catch(() => setError('Unable to load links.'))
-      .finally(() => setAuthLoading(false));
-  }, [router]);
-  useEffect(() => {
+    queueMicrotask(() => void loadUrls());
     return () => {
-      if (copyFeedbackTimer.current) clearTimeout(copyFeedbackTimer.current);
+      if (copyTimer.current) clearTimeout(copyTimer.current);
     };
-  }, []);
+  }, [loadUrls]);
+
   useEffect(() => {
-    if (createState.message) queueMicrotask(() => void loadUrls());
-  }, [createState, loadUrls]);
+    if (!createState.message) return;
+    formRef.current?.reset();
+    queueMicrotask(() => void loadUrls());
+  }, [createState.message, loadUrls]);
+
+  const stats = useMemo(() => {
+    const totalClicks = urls.reduce((total, item) => total + item.clicks, 0);
+    const topLink = urls.reduce<ShortUrl | null>(
+      (top, item) => (!top || item.clicks > top.clicks ? item : top),
+      null,
+    );
+    return { totalClicks, topLink };
+  }, [urls]);
+
+  const filteredUrls = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+    const filtered = urls.filter((item) =>
+      [item.title, item['short-code'], item['original-url']].some((value) =>
+        value.toLowerCase().includes(normalizedQuery),
+      ),
+    );
+
+    return filtered.toSorted((left, right) => {
+      if (sortMode === 'clicks') return right.clicks - left.clicks;
+      if (sortMode === 'oldest')
+        return urls.indexOf(right) - urls.indexOf(left);
+      if (sortMode === 'az')
+        return left.title.localeCompare(right.title, 'pt-BR');
+      return urls.indexOf(left) - urls.indexOf(right);
+    });
+  }, [query, sortMode, urls]);
+
+  async function copyUrl(code: string) {
+    try {
+      await navigator.clipboard.writeText(getShortUrl(code));
+      setCopiedCode(code);
+      if (copyTimer.current) clearTimeout(copyTimer.current);
+      copyTimer.current = setTimeout(() => setCopiedCode(null), 1400);
+    } catch {
+      setLoadError('Não foi possível copiar o link.');
+    }
+  }
+
   async function generateQrCode(code: string) {
-    setError('');
+    setLoadError('');
     setGeneratingQrCode(code);
     try {
       const result = await generateQrCodeAction(code);
@@ -95,291 +137,341 @@ export default function DashboardPage() {
       const imageSource = result.data.startsWith('data:')
         ? result.data
         : `data:image/png;base64,${result.data}`;
-      setQrCodes((currentQrCodes) => ({
-        ...currentQrCodes,
-        [code]: imageSource,
-      }));
+      setQrCodes((current) => ({ ...current, [code]: imageSource }));
     } catch (reason) {
-      setError(
+      setLoadError(
         reason instanceof Error
           ? reason.message
-          : 'Unable to generate QR Code.',
+          : 'Não foi possível gerar o QR Code.',
       );
     } finally {
       setGeneratingQrCode(null);
     }
   }
+
   function downloadQrCode(code: string) {
     const imageSource = qrCodes[code];
     if (!imageSource) return;
-
     const link = document.createElement('a');
     link.href = imageSource;
     link.download = `${code}-qrcode.png`;
     link.click();
   }
-  async function copyShortUrl(code: string) {
-    try {
-      await navigator.clipboard.writeText(getShortUrl(code));
-      setCopiedCode(code);
-      if (copyFeedbackTimer.current) clearTimeout(copyFeedbackTimer.current);
-      copyFeedbackTimer.current = setTimeout(() => {
-        setCopiedCode(null);
-        copyFeedbackTimer.current = null;
-      }, 1000);
-    } catch {
-      setError('Unable to copy the shortened URL.');
-    }
-  }
-  function startEditingTitle(item: ShortUrl, fallbackTitle: string) {
-    setEditingCode(item['short-code']);
-    setEditingTitle(item.title || fallbackTitle);
-    setError('');
-  }
-  function cancelEditingTitle() {
-    setEditingCode(null);
-    setEditingTitle('');
-  }
-  async function updateTitle(formData: FormData, code: string) {
-    const title = String(formData.get('title') ?? '').trim();
-    if (!title) return;
 
-    setSavingTitle(true);
-    setError('');
-    try {
-      const result = await updateUrlTitleAction(code, {}, formData);
-      if (result.error || !result.data) throw new Error(result.error);
-      const newTitle = result.data.title;
-      setUrls((currentUrls) =>
-        currentUrls.map((item) =>
-          item['short-code'] === code ? { ...item, title: newTitle } : item,
-        ),
-      );
-      cancelEditingTitle();
-    } catch (reason) {
-      setError(
-        reason instanceof Error ? reason.message : 'Unable to update title.',
-      );
-    } finally {
-      setSavingTitle(false);
-    }
-  }
+  const isLoading = userLoading || loadingUrls;
+
   return (
-    <div className="min-h-screen bg-[#f5f6fa]">
-      <AppHeader />
-      <main className="mx-auto flex max-w-318.75 flex-col gap-6 px-5 py-8 lg:flex-row lg:px-10">
-        <Card className="min-h-145 flex-1 border-0 px-8 py-10 text-center shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
-          <h1 className="mb-3 text-2xl font-bold">Shorten a Long Link</h1>
-          <p className="mx-auto mb-7 max-w-95 text-[15px] leading-5.5 text-[#6b7280]">
-            Paste your long URL below to create a concise, trackable link.
-          </p>
-          <FormMessage>{createState.error ?? error}</FormMessage>
-          <form action={createFormAction}>
-            <div className="mb-4 flex items-center gap-2 rounded-lg border border-[#e0e2ea] bg-[#f9fafc] px-3.5">
-              <Link2 className="size-4 text-[#9aa0ad]" />
-              <Input
-                name="url"
-                type="url"
-                required
-                placeholder="https://very-long-url.com/path/to/something"
-                className="border-0 bg-transparent px-0 focus-visible:ring-0"
-              />
-            </div>
-            <Button
-              type="submit"
-              disabled={creating}
-              className="h-12 w-full bg-indigo-600 text-[15px] font-semibold hover:bg-indigo-700"
-            >
-              <Scissors />
-              {creating ? 'Shortening...' : 'Shorten URL'}
-            </Button>
-          </form>
-        </Card>
-        <Card className="flex h-145 max-h-[calc(100vh-2rem)] flex-[1.4] flex-col overflow-hidden border-0 px-5 py-8 shadow-[0_1px_3px_rgba(0,0,0,0.05)] md:px-9 lg:max-h-[calc(100vh-9rem)]">
-          <div className="mb-5 flex shrink-0 items-center justify-between border-b border-[#eceef4] pb-5">
-            <h2 className="text-xl font-bold">My Shortened Links</h2>
-            <div className="flex gap-3.5 text-[#9aa0ad]">
-              <List className="size-4" />
-              <SlidersHorizontal className="size-4" />
-            </div>
+    <div className="min-h-dvh bg-[#f2f1f8] text-[#16151f]">
+      <header className="sticky top-0 z-30 border-b border-[#e7e5f0] bg-white/95 backdrop-blur-md">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 md:h-15.75 md:px-8">
+          <div className="flex items-center gap-8">
+            <Link href="/dashboard" aria-label="Ir para o dashboard">
+              <Logo />
+            </Link>
+            <nav className="hidden items-center gap-1 md:flex">
+              <Link
+                href="/dashboard"
+                className="rounded-full bg-[#eeecfd] px-4 py-2 text-sm font-semibold text-[#5b4fe9]"
+              >
+                Dashboard
+              </Link>
+              <Link
+                href="/profile"
+                className="rounded-full px-4 py-2 text-sm font-medium text-[#6b6a78] transition hover:bg-[#f5f4fa] hover:text-[#16151f]"
+              >
+                Perfil
+              </Link>
+            </nav>
           </div>
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1">
-            {authLoading ? (
-              <p className="py-16 text-center text-sm text-[#9aa0ad]">
-                Loading links...
-              </p>
+          <div className="flex items-center gap-4 md:gap-5">
+            <form action={logoutAction} className="hidden md:block">
+              <button
+                type="submit"
+                className="flex items-center gap-2 text-sm font-medium text-[#6b6a78] transition hover:text-[#16151f]"
+              >
+                <LogOut className="size-4" />
+                Sair
+              </button>
+            </form>
+            <Link
+              href="/profile"
+              aria-label="Abrir perfil"
+              className="grid size-8 place-items-center rounded-full bg-linear-to-br from-[#6d63ef] to-[#4338ca] text-[11px] font-bold text-white shadow-sm md:size-9 md:text-xs"
+            >
+              {getInitials(user?.name)}
+            </Link>
+          </div>
+        </div>
+      </header>
+
+      <main className="mx-auto w-full max-w-257 px-4 py-6 md:px-6 md:py-10 lg:px-8">
+        <section className="mb-5 md:mb-7">
+          <p className="mb-2 font-mono text-[10px] font-semibold tracking-[0.14em] text-[#5b4fe9] uppercase md:text-[11px]">
+            Seu espaço de links
+          </p>
+          <h1 className="text-2xl font-extrabold tracking-[-0.04em] md:text-[32px]">
+            Encurte um link
+          </h1>
+          <p className="mt-1 text-[13.5px] leading-5 text-[#6b6a78] md:text-[15px]">
+            Cole uma URL longa para criar um link curto e rastreável.
+          </p>
+        </section>
+
+        <FormMessage>{createState.error ?? loadError}</FormMessage>
+        <FormMessage success>{createState.message}</FormMessage>
+
+        <form
+          ref={formRef}
+          action={createAction}
+          className="mb-6 flex flex-col gap-2.5 md:mb-7 md:flex-row md:gap-3"
+        >
+          <div className="flex h-12 flex-1 items-center gap-2.5 rounded-xl border border-[#e7e5f0] bg-white px-3.5 shadow-[0_1px_2px_rgba(20,18,45,0.03)] transition focus-within:border-[#5b4fe9] focus-within:ring-4 focus-within:ring-[#eeecfd] md:h-13 md:rounded-[10px] md:px-4">
+            <Link2 className="size-4.5 shrink-0 text-[#9998a3]" />
+            <Input
+              name="url"
+              type="url"
+              required
+              aria-label="URL para encurtar"
+              placeholder="https://exemplo.com/pagina/muito/longa"
+              className="h-full border-0 bg-transparent px-0 text-sm shadow-none focus-visible:ring-0 md:text-[15px]"
+            />
+          </div>
+          <Button
+            type="submit"
+            disabled={isCreating}
+            className="h-12 rounded-xl bg-linear-to-r from-[#5b4fe9] to-[#4438d8] px-6 text-[14.5px] font-semibold text-white shadow-[0_12px_22px_-12px_rgba(91,79,233,0.7)] hover:from-[#685df0] hover:to-[#5145df] md:h-13 md:rounded-[10px] md:text-[15px]"
+          >
+            {isCreating ? (
+              <LoaderCircle className="size-4 animate-spin" />
             ) : (
-              urls.map((item, index) => (
+              <Scissors className="size-4" />
+            )}
+            {isCreating ? 'Encurtando...' : 'Encurtar'}
+          </Button>
+        </form>
+
+        <section className="mb-6 grid grid-cols-2 gap-2.5 md:mb-7 md:grid-cols-3 md:gap-4">
+          <StatCard icon={<Link2 />} label="Links ativos" value={urls.length} />
+          <StatCard
+            icon={<Activity />}
+            label="Cliques totais"
+            value={stats.totalClicks.toLocaleString('pt-BR')}
+          />
+          <StatCard
+            wide
+            icon={<Trophy />}
+            label="Link com mais cliques"
+            value={stats.topLink ? `/${stats.topLink['short-code']}` : '—'}
+            detail={
+              stats.topLink
+                ? `${stats.topLink.clicks.toLocaleString('pt-BR')} cliques`
+                : 'Sem dados ainda'
+            }
+            mono
+          />
+        </section>
+
+        <section className="overflow-hidden rounded-2xl border border-[#e7e5f0] bg-white shadow-[0_1px_3px_rgba(20,18,45,0.04)]">
+          <header className="flex flex-col gap-3 px-4 pt-4 pb-3 md:flex-row md:items-center md:justify-between md:px-6 md:py-5">
+            <h2 className="text-[15.5px] font-bold md:text-[17px]">
+              Meus links <span className="text-[#9998a3]">({urls.length})</span>
+            </h2>
+            <div className="flex flex-col gap-2 md:flex-row md:gap-2.5">
+              <label className="flex h-10 items-center gap-2 rounded-[10px] border border-[#e7e5f0] px-3 md:h-9.5 md:w-55 md:rounded-lg">
+                <Search className="size-4 shrink-0 text-[#9998a3]" />
+                <input
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="Buscar"
+                  aria-label="Buscar links"
+                  className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-[#9998a3]"
+                />
+              </label>
+              <select
+                value={sortMode}
+                onChange={(event) =>
+                  setSortMode(event.target.value as SortMode)
+                }
+                aria-label="Ordenar links"
+                className="h-10 rounded-[10px] border border-[#e7e5f0] bg-white px-3 text-sm outline-none focus:border-[#5b4fe9] md:h-9.5 md:rounded-lg"
+              >
+                <option value="recent">Mais recentes</option>
+                <option value="clicks">Mais clicados</option>
+                <option value="oldest">Mais antigos</option>
+                <option value="az">A–Z</option>
+              </select>
+            </div>
+          </header>
+
+          <div className="border-t border-[#e7e5f0]">
+            {isLoading ? (
+              <div className="flex items-center justify-center gap-2 py-14 text-sm text-[#6b6a78]">
+                <LoaderCircle className="size-4 animate-spin text-[#5b4fe9]" />
+                Carregando seus links...
+              </div>
+            ) : filteredUrls.length ? (
+              filteredUrls.map((item) => (
                 <article
                   key={item['short-code']}
-                  className="mb-4 rounded-[10px] border border-[#eceef4] px-5 py-4.5"
+                  className="border-b border-[#e7e5f0] px-4 py-4 last:border-b-0 md:px-6 md:py-4.5"
                 >
-                  {editingCode === item['short-code'] ? (
-                    <form
-                      action={(formData) =>
-                        updateTitle(formData, item['short-code'])
-                      }
-                      className="mb-3 flex items-center gap-2"
-                    >
-                      <Input
-                        name="title"
-                        value={editingTitle}
-                        required
-                        autoFocus
-                        aria-label="URL title"
-                        className="h-9 flex-1"
-                        onChange={(event) =>
-                          setEditingTitle(event.target.value)
-                        }
-                      />
-                      <button
-                        type="submit"
-                        disabled={savingTitle}
-                        aria-label="Save title"
-                        className="grid size-8 shrink-0 cursor-pointer place-items-center rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        <Check className="size-4" />
-                      </button>
-                      <button
-                        type="button"
-                        disabled={savingTitle}
-                        aria-label="Cancel title editing"
-                        className="grid size-8 shrink-0 cursor-pointer place-items-center rounded-lg border border-[#d8dae5] text-[#6b7280] hover:bg-[#f5f6fa] disabled:cursor-not-allowed disabled:opacity-50"
-                        onClick={cancelEditingTitle}
-                      >
-                        <X className="size-4" />
-                      </button>
-                    </form>
-                  ) : (
-                    <div className="mb-3 flex items-center justify-between gap-3">
-                      <h3 className="min-w-0 truncate font-semibold">
-                        {item.title || `Shortened Link ${index + 1}`}
-                      </h3>
-                      <div className="flex shrink-0 items-center gap-2">
-                        <span className="rounded-full bg-[#e7e9fb] px-2.5 py-1 text-[11px] font-bold tracking-[0.3px] text-indigo-600 uppercase">
-                          Link
+                  <div className="flex items-start justify-between gap-3 md:items-center md:gap-4">
+                    <div className="min-w-0 flex-1">
+                      <h3 className="mb-1 flex items-center gap-2 truncate text-[13.5px] font-semibold md:text-[14.5px]">
+                        <span aria-hidden="true">🔗</span>
+                        <span className="truncate">
+                          {item.title || 'Link sem título'}
                         </span>
+                      </h3>
+                      <div className="mb-1 flex items-center gap-1.5">
+                        <Link
+                          href={getShortUrlPath(item['short-code'])}
+                          target="_blank"
+                          className="truncate font-mono text-[13px] font-semibold text-[#5b4fe9] hover:underline md:text-sm"
+                        >
+                          {getShortUrl(item['short-code']).replace(
+                            /^https?:\/\//,
+                            '',
+                          )}
+                        </Link>
                         <button
                           type="button"
-                          aria-label={`Edit title for ${item.title || `Shortened Link ${index + 1}`}`}
-                          className="grid size-7 cursor-pointer place-items-center rounded-lg text-[#8b8fa3] hover:bg-indigo-50 hover:text-indigo-600"
-                          onClick={() =>
-                            startEditingTitle(
-                              item,
-                              `Shortened Link ${index + 1}`,
-                            )
-                          }
+                          onClick={() => copyUrl(item['short-code'])}
+                          aria-label="Copiar link curto"
+                          className="grid size-5 shrink-0 place-items-center rounded-md text-[#9998a3] transition hover:bg-[#eeecfd] hover:text-[#5b4fe9]"
                         >
-                          <Pencil className="size-3.5" />
+                          {copiedCode === item['short-code'] ? (
+                            <Check className="size-3.5 text-emerald-600" />
+                          ) : (
+                            <Clipboard className="size-3.5" />
+                          )}
                         </button>
                       </div>
+                      <p className="flex min-w-0 items-center gap-1.5 text-xs text-[#6b6a78] md:text-[13px]">
+                        <ExternalLink className="size-3 shrink-0 text-[#9998a3]" />
+                        <span className="truncate" title={item['original-url']}>
+                          {item['original-url']}
+                        </span>
+                      </p>
+                      <p className="mt-1 text-[11.5px] text-[#9998a3] md:text-xs">
+                        Criado recentemente
+                      </p>
                     </div>
-                  )}
-                  <div className="mb-2.5 flex items-center justify-between rounded-lg bg-[#f2f3fc] px-3.5 py-2.5">
-                    <Link
-                      href={getShortUrlPath(item['short-code'])}
-                      target="_blank"
-                      className="truncate text-[15px] font-semibold text-indigo-600 hover:underline"
-                    >
-                      {getShortUrl(item['short-code'])}
-                    </Link>
-                    <button
-                      type="button"
-                      className="grid size-6 cursor-pointer place-items-center text-indigo-600"
-                      aria-label={
-                        copiedCode === item['short-code']
-                          ? 'Shortened URL copied'
-                          : 'Copy shortened URL'
-                      }
-                      onClick={() => copyShortUrl(item['short-code'])}
-                    >
-                      {copiedCode === item['short-code'] ? (
-                        <Check className="animate-in zoom-in size-4 duration-150" />
-                      ) : (
-                        <Clipboard className="animate-in fade-in size-4 duration-150" />
-                      )}
-                    </button>
-                  </div>
-                  <div className="mb-3.5 flex items-center gap-1.5 text-[13px] break-all text-[#8b8fa3]">
-                    <Link2 className="size-3.5 shrink-0" />
-                    {item['original-url']}
-                  </div>
-                  <div className="flex items-center justify-between text-[13px] text-[#8b8fa3]">
-                    <div className="flex gap-4.5">
-                      <span className="flex items-center gap-1">
-                        <BarChart3 className="size-3.5" />
-                        {item.clicks} clicks
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <CalendarDays className="size-3.5" />
-                        Today
-                      </span>
+                    <div className="flex shrink-0 flex-col items-end gap-2 md:flex-row md:items-center md:gap-4">
+                      <div className="text-right">
+                        <strong className="block text-[17px] leading-none font-extrabold md:text-xl">
+                          {item.clicks.toLocaleString('pt-BR')}
+                        </strong>
+                        <span className="text-[10.5px] text-[#6b6a78] md:text-[11.5px]">
+                          cliques
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        disabled={generatingQrCode === item['short-code']}
+                        onClick={() => generateQrCode(item['short-code'])}
+                        aria-label={`Gerar QR Code para ${item.title || 'link'}`}
+                        title="Gerar QR Code"
+                        className="grid size-8 place-items-center rounded-lg border border-[#e7e5f0] text-[#5b4fe9] transition hover:border-[#d8d3fa] hover:bg-[#eeecfd] disabled:cursor-wait disabled:opacity-60"
+                      >
+                        {generatingQrCode === item['short-code'] ? (
+                          <LoaderCircle className="size-4 animate-spin" />
+                        ) : (
+                          <QrCode className="size-4" />
+                        )}
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      disabled={generatingQrCode === item['short-code']}
-                      onClick={() => generateQrCode(item['short-code'])}
-                      className="flex cursor-pointer items-center gap-1 font-semibold text-indigo-600 disabled:cursor-wait disabled:opacity-60"
-                    >
-                      {generatingQrCode === item['short-code'] ? (
-                        <LoaderCircle className="size-4 animate-spin" />
-                      ) : (
-                        <QrCode className="size-4" />
-                      )}
-                      {generatingQrCode === item['short-code']
-                        ? 'Generating...'
-                        : qrCodes[item['short-code']]
-                          ? 'Regenerate QR Code'
-                          : 'QR Code'}
-                    </button>
                   </div>
                   {qrCodes[item['short-code']] && (
-                    <div className="mt-4 flex flex-col items-center gap-4 rounded-xl border border-indigo-100 bg-indigo-50/60 p-4 sm:flex-row">
+                    <div className="mt-4 flex flex-col items-center gap-4 rounded-xl border border-[#ddd9fb] bg-[#f7f6ff] p-4 sm:flex-row">
                       <div className="shrink-0 rounded-xl bg-white p-2 shadow-sm">
                         <Image
                           src={qrCodes[item['short-code']]}
-                          alt={`QR Code for ${getShortUrl(item['short-code'])}`}
-                          width={128}
-                          height={128}
+                          alt={`QR Code para ${getShortUrl(item['short-code'])}`}
+                          width={112}
+                          height={112}
                           unoptimized
-                          className="size-32"
+                          className="size-28"
                         />
                       </div>
                       <div className="min-w-0 text-center sm:text-left">
-                        <p className="font-semibold text-[#242633]">
-                          QR Code ready
-                        </p>
-                        <p className="mt-1 mb-3 text-xs text-[#6b7280]">
-                          Scan it to open your shortened link or download the
-                          image.
+                        <p className="text-sm font-bold">QR Code pronto</p>
+                        <p className="mt-1 mb-3 text-xs leading-5 text-[#6b6a78]">
+                          Escaneie para abrir o link ou baixe a imagem para
+                          compartilhar.
                         </p>
                         <Button
                           type="button"
                           variant="outline"
                           size="sm"
                           onClick={() => downloadQrCode(item['short-code'])}
-                          className="border-indigo-200 bg-white text-indigo-600 hover:bg-indigo-100 hover:text-indigo-700"
+                          className="border-[#d8d3fa] bg-white text-[#5b4fe9] hover:bg-[#eeecfd] hover:text-[#4b3fd8]"
                         >
-                          <Download className="size-4" />
-                          Download PNG
+                          <Download className="size-3.5" />
+                          Baixar PNG
                         </Button>
                       </div>
                     </div>
                   )}
                 </article>
               ))
-            )}
-            {!authLoading && urls.length === 0 && (
-              <div className="rounded-[10px] border-2 border-dashed border-[#d8dae5] py-10 text-center text-[#b0b3c0]">
-                <div className="mb-2.5 flex justify-center">
-                  <Grid2X2 className="size-5.5" />
+            ) : (
+              <div className="px-4 py-12 text-center">
+                <div className="mx-auto mb-3 grid size-10 place-items-center rounded-full bg-[#eeecfd] text-[#5b4fe9]">
+                  <Link2 className="size-4.5" />
                 </div>
-                <p className="text-sm">No links found.</p>
+                <p className="text-sm font-semibold">
+                  {query
+                    ? 'Nenhum link corresponde à busca'
+                    : 'Nenhum link encontrado'}
+                </p>
+                <p className="mt-1 text-xs text-[#6b6a78]">
+                  {query
+                    ? 'Tente buscar por outro termo.'
+                    : 'Encurte sua primeira URL acima.'}
+                </p>
               </div>
             )}
           </div>
-        </Card>
+        </section>
       </main>
     </div>
+  );
+}
+
+function StatCard({
+  icon,
+  label,
+  value,
+  detail,
+  wide,
+  mono,
+}: {
+  icon: ReactElement<{ className?: string }>;
+  label: string;
+  value: string | number;
+  detail?: string;
+  wide?: boolean;
+  mono?: boolean;
+}) {
+  return (
+    <article
+      className={`rounded-2xl border border-[#e7e5f0] bg-white p-3.5 shadow-[0_1px_3px_rgba(20,18,45,0.04)] md:p-5 ${wide ? 'col-span-2 md:col-span-1' : ''}`}
+    >
+      <p className="mb-2 flex items-center gap-1.5 text-xs font-medium text-[#6b6a78] md:mb-3 md:gap-2 md:text-[13px]">
+        <span className="text-[#5b4fe9] [&>svg]:size-3.5">{icon}</span>
+        {label}
+      </p>
+      <strong
+        className={`block font-extrabold tracking-[-0.03em] ${mono ? 'font-mono text-[17px] md:text-xl' : 'text-xl md:text-[26px]'}`}
+      >
+        {value}
+      </strong>
+      {detail && (
+        <p className="mt-0.5 text-[11.5px] text-[#6b6a78] md:text-xs">
+          {detail}
+        </p>
+      )}
+    </article>
   );
 }

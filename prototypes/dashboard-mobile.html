@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MyURL — Dashboard (Mobile)</title>
+<style>
+  :root{
+    --primary:#5B4FE9;
+    --primary-hover:#4B3FD8;
+    --primary-light:#EEECFD;
+    --bg:#F2F1F8;
+    --card:#FFFFFF;
+    --border:#E7E5F0;
+    --text:#16151F;
+    --text-muted:#6B6A78;
+    --text-faint:#9998A3;
+    --radius-lg:16px;
+    --radius-md:12px;
+    --radius-sm:10px;
+    --shadow-card:0 1px 2px rgba(20,18,45,0.04), 0 1px 3px rgba(20,18,45,0.04);
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{text-decoration:none;color:inherit;}
+  button{font-family:inherit;cursor:pointer;}
+
+  /* App shell: centers the mobile layout on wider screens, full width on phones */
+  .app{
+    max-width:430px;
+    margin:0 auto;
+    background:var(--bg);
+    min-height:100vh;
+  }
+
+  /* ---------- Top bar ---------- */
+  .topbar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:14px 16px;
+    background:var(--card);
+    border-bottom:1px solid var(--border);
+    position:sticky;
+    top:0;
+    z-index:10;
+  }
+  .logo{
+    font-weight:800;
+    font-size:17px;
+    color:var(--primary);
+    letter-spacing:-0.3px;
+  }
+  .avatar{
+    width:30px;height:30px;border-radius:50%;
+    background:var(--primary);
+    color:#fff;font-size:11px;font-weight:700;
+    display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;
+  }
+
+  /* ---------- Page shell ---------- */
+  .page{
+    padding:20px 16px 40px;
+  }
+
+  .page-title{
+    font-size:24px;
+    font-weight:800;
+    letter-spacing:-0.5px;
+    margin:0 0 4px;
+  }
+  .page-subtitle{
+    font-size:13.5px;
+    color:var(--text-muted);
+    line-height:1.4;
+    margin:0 0 18px;
+  }
+
+  /* ---------- Shorten form ---------- */
+  .shorten-form{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    margin-bottom:22px;
+  }
+  .input-wrap{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:var(--radius-md);
+    padding:0 14px;
+    height:48px;
+  }
+  .input-wrap svg{flex-shrink:0;color:var(--text-faint);}
+  .input-wrap input{
+    border:none;outline:none;
+    font-size:14px;
+    width:100%;
+    height:100%;
+    background:transparent;
+    color:var(--text);
+  }
+  .input-wrap input::placeholder{color:var(--text-faint);}
+  .input-wrap:focus-within{
+    border-color:var(--primary);
+    box-shadow:0 0 0 3px var(--primary-light);
+  }
+  .btn-primary{
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    background:var(--primary);
+    color:#fff;
+    border:none;
+    border-radius:var(--radius-md);
+    width:100%;
+    height:48px;
+    font-size:14.5px;
+    font-weight:600;
+    transition:background .15s ease;
+  }
+  .btn-primary:hover{background:var(--primary-hover);}
+  .btn-primary:active{transform:translateY(1px);}
+
+  /* ---------- Stat cards ---------- */
+  .stats-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    margin-bottom:22px;
+  }
+  .stat-card{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:var(--radius-lg);
+    padding:14px 14px;
+    box-shadow:var(--shadow-card);
+  }
+  .stat-card.wide{grid-column:1 / -1;}
+  .stat-label{
+    display:flex;align-items:center;gap:6px;
+    font-size:12px;
+    color:var(--text-muted);
+    font-weight:500;
+    margin-bottom:8px;
+  }
+  .stat-label svg{color:var(--primary);flex-shrink:0;}
+  .stat-value{
+    font-size:20px;
+    font-weight:800;
+    letter-spacing:-0.3px;
+  }
+  .stat-value.small{font-size:17px;font-family:"SFMono-Regular",Consolas,Menlo,monospace;}
+  .stat-sub{font-size:11.5px;color:var(--text-muted);margin-top:2px;}
+
+  /* ---------- Links panel ---------- */
+  .panel{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:var(--radius-lg);
+    box-shadow:var(--shadow-card);
+    overflow:hidden;
+  }
+  .panel-header{
+    padding:16px 16px 12px;
+  }
+  .panel-title{font-size:15.5px;font-weight:700;margin-bottom:10px;}
+  .panel-controls{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+  }
+  .search-box{
+    display:flex;align-items:center;gap:8px;
+    border:1px solid var(--border);
+    border-radius:var(--radius-sm);
+    padding:0 12px;
+    height:40px;
+  }
+  .search-box svg{color:var(--text-faint);flex-shrink:0;}
+  .search-box input{
+    border:none;outline:none;font-size:14px;width:100%;background:transparent;color:var(--text);
+  }
+  .sort-select{
+    border:1px solid var(--border);
+    border-radius:var(--radius-sm);
+    height:40px;
+    padding:0 12px;
+    font-size:14px;
+    color:var(--text);
+    background:var(--card);
+    width:100%;
+  }
+
+  .link-list{border-top:1px solid var(--border);}
+  .link-row{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:10px;
+    padding:14px 16px;
+    border-bottom:1px solid var(--border);
+  }
+  .link-row:last-child{border-bottom:none;}
+  .link-main{min-width:0;flex:1;}
+  .link-title-row{
+    display:flex;align-items:center;gap:6px;
+    font-size:13.5px;font-weight:600;
+    margin-bottom:3px;
+  }
+  .link-emoji{font-size:14px;}
+  .short-url-row{
+    display:flex;align-items:center;gap:6px;
+    margin-bottom:3px;
+  }
+  .short-url{
+    font-family:"SFMono-Regular",Consolas,Menlo,monospace;
+    font-size:13px;
+    color:var(--primary);
+    font-weight:600;
+  }
+  .copy-btn{
+    border:none;background:transparent;color:var(--text-faint);
+    display:flex;align-items:center;justify-content:center;
+    width:20px;height:20px;border-radius:6px;
+    flex-shrink:0;
+  }
+  .copy-btn:hover{background:var(--primary-light);color:var(--primary);}
+  .copy-btn.copied{color:#22A366;}
+  .original-url{
+    display:flex;align-items:center;gap:5px;
+    font-size:12px;color:var(--text-muted);
+    overflow:hidden;
+    margin-bottom:3px;
+  }
+  .original-url span{
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  }
+  .original-url svg{flex-shrink:0;color:var(--text-faint);}
+  .created-at{font-size:11.5px;color:var(--text-faint);}
+
+  .link-stats{
+    display:flex;
+    flex-direction:column;
+    align-items:flex-end;
+    gap:6px;
+    flex-shrink:0;
+  }
+  .click-count-wrap{text-align:right;}
+  .click-count{font-size:17px;font-weight:800;line-height:1;}
+  .click-label{font-size:10.5px;color:var(--text-muted);margin-top:2px;}
+  .more-btn{
+    border:none;background:transparent;color:var(--text-faint);
+    width:24px;height:20px;border-radius:6px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:16px;letter-spacing:2px;
+  }
+  .more-btn:hover{background:var(--bg);color:var(--text);}
+
+  .empty-state{
+    padding:36px 16px;
+    text-align:center;
+    color:var(--text-muted);
+    font-size:13.5px;
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header class="topbar">
+    <span class="logo">MyURL</span>
+    <div class="avatar" id="userAvatar">PP</div>
+  </header>
+
+  <main class="page">
+    <h1 class="page-title">Encurte um link</h1>
+    <p class="page-subtitle">Cole uma URL longa para criar um link curto e rastreável.</p>
+
+    <form class="shorten-form" id="shortenForm">
+      <div class="input-wrap">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+        <input type="url" id="longUrlInput" placeholder="https://exemplo.com/pagina/muito/longa" required>
+      </div>
+      <button type="submit" class="btn-primary">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4 8.12 15.88"/><path d="M14.47 14.48 20 20"/><path d="M8.12 8.12 12 12"/></svg>
+        Encurtar
+      </button>
+    </form>
+
+    <section class="stats-grid" id="statsGrid">
+      <!-- stat cards rendered by JS -->
+    </section>
+
+    <section class="panel">
+      <div class="panel-header">
+        <h2 class="panel-title" id="panelTitle">Meus links</h2>
+        <div class="panel-controls">
+          <div class="search-box">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <input type="text" id="searchInput" placeholder="Buscar">
+          </div>
+          <select class="sort-select" id="sortSelect">
+            <option value="recent">Mais recentes</option>
+            <option value="clicks">Mais clicados</option>
+            <option value="oldest">Mais antigos</option>
+            <option value="az">A–Z</option>
+          </select>
+        </div>
+      </div>
+      <div class="link-list" id="linkList">
+        <!-- link rows rendered by JS -->
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+/* =========================================================
+   DADOS ILUSTRATIVOS
+   Substitua "fetchLinksFromApi()" pela chamada real à API
+   do projeto (ex: fetch('/api/links')).
+   ========================================================= */
+
+const MOCK_LINKS = [
+  {
+    id: 1,
+    emoji: "🎫",
+    title: "123 Milhas",
+    shortCode: "YtVshvtS",
+    originalUrl: "https://123milhas.com/?srsltid=AfmBOoq-vngCW3KOD-vm-XUJIMrDx6XwQILfGzRDEi4_yxlf3zb...",
+    createdLabel: "Criado hoje",
+    createdAt: Date.now(),
+    clicks: 0
+  },
+  {
+    id: 2,
+    emoji: "🔥",
+    title: "Walt Disney World",
+    shortCode: "nQCfcpxh",
+    originalUrl: "https://disneyworld.disney.go.com/pt-br/",
+    createdLabel: "Criado hoje",
+    createdAt: Date.now(),
+    clicks: 4
+  },
+  {
+    id: 3,
+    emoji: "🌐",
+    title: "Newsletter de agosto",
+    shortCode: "aug26nl",
+    originalUrl: "https://example.com/newsletter/2026/agosto?utm_source=instagram&utm_medium=bio",
+    createdLabel: "Criado há 3 dias",
+    createdAt: Date.now() - 3*86400000,
+    clicks: 218
+  },
+  {
+    id: 4,
+    emoji: "📗",
+    title: "Confer\u00eancia Anual",
+    shortCode: "confAnl",
+    originalUrl: "https://example.com/eventos/conferencia-anual/inscricoes",
+    createdLabel: "Criado há 5 dias",
+    createdAt: Date.now() - 5*86400000,
+    clicks: 37
+  }
+];
+
+const DOMAIN = "myurl.co";
+
+// Simula chamada de API. Troque pelo fetch() real do backend.
+async function fetchLinksFromApi(){
+  return Promise.resolve(MOCK_LINKS);
+}
+
+function computeStats(links){
+  const totalClicks = links.reduce((sum, l) => sum + l.clicks, 0);
+  const topLink = links.reduce((top, l) => (l.clicks > (top?.clicks ?? -1) ? l : top), null);
+  return {
+    activeLinks: links.length,
+    totalClicks,
+    topLink
+  };
+}
+
+/* ---------------- Ícones (inline SVG, sem libs externas) ---------------- */
+const ICONS = {
+  link: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>`,
+  pulse: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3 8 4-16 3 8h4"/></svg>`,
+  trophy: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M17 4h3a2 2 0 0 1-2 5"/><path d="M7 4H4a2 2 0 0 0 2 5"/></svg>`,
+  copy: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`,
+  check: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>`,
+  external: `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>`
+};
+
+/* ---------------- Renderização ---------------- */
+function renderStats(stats){
+  const grid = document.getElementById('statsGrid');
+  grid.innerHTML = `
+    <div class="stat-card">
+      <div class="stat-label">${ICONS.link} Links ativos</div>
+      <div class="stat-value">${stats.activeLinks}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">${ICONS.pulse} Cliques totais</div>
+      <div class="stat-value">${stats.totalClicks.toLocaleString('pt-BR')}</div>
+    </div>
+    <div class="stat-card wide">
+      <div class="stat-label">${ICONS.trophy} Link com mais cliques</div>
+      <div class="stat-value small">${stats.topLink ? '/' + stats.topLink.shortCode : '—'}</div>
+      <div class="stat-sub">${stats.topLink ? stats.topLink.clicks.toLocaleString('pt-BR') + ' cliques' : 'Sem dados ainda'}</div>
+    </div>
+  `;
+}
+
+function renderLinkRow(link){
+  return `
+    <div class="link-row" data-id="${link.id}">
+      <div class="link-main">
+        <div class="link-title-row">
+          <span class="link-emoji">${link.emoji}</span>
+          <span>${escapeHtml(link.title)}</span>
+        </div>
+        <div class="short-url-row">
+          <span class="short-url">${DOMAIN}/${link.shortCode}</span>
+          <button class="copy-btn" data-copy="${DOMAIN}/${link.shortCode}" title="Copiar link" aria-label="Copiar link">${ICONS.copy}</button>
+        </div>
+        <div class="original-url">
+          ${ICONS.external}
+          <span title="${escapeHtml(link.originalUrl)}">${escapeHtml(link.originalUrl)}</span>
+        </div>
+        <div class="created-at">${escapeHtml(link.createdLabel)}</div>
+      </div>
+      <div class="link-stats">
+        <div class="click-count-wrap">
+          <div class="click-count">${link.clicks.toLocaleString('pt-BR')}</div>
+          <div class="click-label">cliques</div>
+        </div>
+        <button class="more-btn" aria-label="Mais opções">&#8942;</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderLinkList(links){
+  const container = document.getElementById('linkList');
+  if(!links.length){
+    container.innerHTML = `<div class="empty-state">Nenhum link encontrado.</div>`;
+    return;
+  }
+  container.innerHTML = links.map(renderLinkRow).join('');
+  attachRowListeners();
+}
+
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+/* ---------------- Busca e ordenação ---------------- */
+let allLinks = [];
+
+function applyFiltersAndRender(){
+  const query = document.getElementById('searchInput').value.trim().toLowerCase();
+  const sortMode = document.getElementById('sortSelect').value;
+
+  let filtered = allLinks.filter(l =>
+    l.title.toLowerCase().includes(query) ||
+    l.shortCode.toLowerCase().includes(query) ||
+    l.originalUrl.toLowerCase().includes(query)
+  );
+
+  switch(sortMode){
+    case 'clicks':
+      filtered.sort((a,b) => b.clicks - a.clicks);
+      break;
+    case 'oldest':
+      filtered.sort((a,b) => a.createdAt - b.createdAt);
+      break;
+    case 'az':
+      filtered.sort((a,b) => a.title.localeCompare(b.title, 'pt-BR'));
+      break;
+    case 'recent':
+    default:
+      filtered.sort((a,b) => b.createdAt - a.createdAt);
+  }
+
+  document.getElementById('panelTitle').textContent = `Meus links (${allLinks.length})`;
+  renderLinkList(filtered);
+}
+
+function attachRowListeners(){
+  document.querySelectorAll('.copy-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const text = btn.getAttribute('data-copy');
+      const fullUrl = 'https://' + text;
+      try{
+        await navigator.clipboard.writeText(fullUrl);
+      }catch(e){
+        // fallback silencioso caso a API de clipboard não esteja disponível
+      }
+      btn.classList.add('copied');
+      btn.innerHTML = ICONS.check;
+      setTimeout(() => {
+        btn.classList.remove('copied');
+        btn.innerHTML = ICONS.copy;
+      }, 1400);
+    });
+  });
+}
+
+/* ---------------- Encurtar link (mock) ---------------- */
+document.getElementById('shortenForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const input = document.getElementById('longUrlInput');
+  const url = input.value.trim();
+  if(!url) return;
+
+  // Substitua por: const newLink = await api.createShortLink(url);
+  const newLink = {
+    id: Date.now(),
+    emoji: "🔗",
+    title: (() => { try { return new URL(url).hostname.replace('www.',''); } catch { return 'Novo link'; } })(),
+    shortCode: Math.random().toString(36).slice(2, 9),
+    originalUrl: url,
+    createdLabel: "Criado agora",
+    createdAt: Date.now(),
+    clicks: 0
+  };
+
+  allLinks.unshift(newLink);
+  input.value = '';
+  renderStats(computeStats(allLinks));
+  applyFiltersAndRender();
+});
+
+document.getElementById('searchInput').addEventListener('input', applyFiltersAndRender);
+document.getElementById('sortSelect').addEventListener('change', applyFiltersAndRender);
+
+/* ---------------- Inicialização ---------------- */
+async function init(){
+  allLinks = await fetchLinksFromApi();
+  renderStats(computeStats(allLinks));
+  applyFiltersAndRender();
+}
+
+init();
+</script>
+
+</body>
+</html>
