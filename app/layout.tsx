@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Link Precision',
+  title: 'MyURL',
   description: 'Create and manage concise, trackable links.',
 };
 

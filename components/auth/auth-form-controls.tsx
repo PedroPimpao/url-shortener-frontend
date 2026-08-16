@@ -1,5 +1,9 @@
+'use client';
+
 import type { ComponentType, ReactNode } from 'react';
+import { useFormStatus } from 'react-dom';
 import Link from 'next/link';
+import { LoaderCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Field, FieldLabel, FieldSeparator } from '@/components/ui/field';
 import { cn } from '@/lib/utils';
@@ -42,25 +46,29 @@ export const authInputClassName =
   'border-0 bg-transparent px-0 text-[15px] shadow-none focus-visible:ring-0';
 
 export const AuthSubmitButton = ({
-  loading,
   idleLabel,
   loadingLabel,
 }: {
-  loading: boolean;
   idleLabel: string;
   loadingLabel: string;
-}) => (
-  <Button
-    type="submit"
-    disabled={loading}
-    className="h-12.5 w-full rounded-[14px] bg-linear-to-r from-[#3d5afe] to-[#2541db] text-[14.5px] font-bold text-white shadow-[0_16px_26px_-12px_rgba(61,90,254,0.55)] hover:from-[#526bff] hover:to-[#3650de]"
-  >
-    {loading && (
-      <span className="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
-    )}
-    {loading ? loadingLabel : idleLabel}
-  </Button>
-);
+}) => {
+  const { pending } = useFormStatus();
+
+  return (
+    <Button
+      type="submit"
+      disabled={pending}
+      aria-busy={pending}
+      aria-live="polite"
+      className="h-12.5 w-full rounded-[14px] bg-linear-to-r from-[#3d5afe] to-[#2541db] text-[14.5px] font-bold text-white shadow-[0_16px_26px_-12px_rgba(61,90,254,0.55)] hover:from-[#526bff] hover:to-[#3650de]"
+    >
+      {pending && (
+        <LoaderCircle className="size-4.5 animate-spin" aria-hidden="true" />
+      )}
+      {pending ? loadingLabel : idleLabel}
+    </Button>
+  );
+};
 
 export const MobileAuthLink = ({
   href,

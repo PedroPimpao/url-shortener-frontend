@@ -36,7 +36,6 @@ const SignupPage = () => {
   const router = useRouter();
   const [error, setError] = useState('');
   const [password, setPassword] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const strength = useMemo(
     () =>
       password
@@ -61,7 +60,6 @@ const SignupPage = () => {
       return;
     }
     setError('');
-    setIsSubmitting(true);
     try {
       const firstName = String(formData.get('firstName')).trim();
       const lastName = String(formData.get('lastName')).trim();
@@ -77,8 +75,6 @@ const SignupPage = () => {
           ? reason.message
           : 'Não foi possível criar a conta.',
       );
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -86,16 +82,9 @@ const SignupPage = () => {
     <AuthPageShell
       backHref="/login"
       mobileTag="Cadastro"
-      mobileEyebrow="Leva menos de 1 minuto"
-      mobileTitle="Crie sua conta gratuita"
-      desktopEyebrow="Junte-se a milhares de times"
-      desktopTitle="Crie sua conta e comece a fluir"
-      desktopDescription="Gratuito para começar, sem cartão de crédito. Configure seu espaço em minutos."
-      desktopItems={[
-        'Espaço de trabalho ilimitado',
-        'Colaboração em tempo real',
-        'Integração com suas ferramentas',
-      ]}
+      eyebrow="Leva menos de 1 minuto"
+      title="Crie sua conta gratuita"
+      description="Tudo pronto para você criar e gerenciar seus links.."
     >
       <AuthFormPanel
         eyebrow="Novo por aqui"
@@ -201,11 +190,7 @@ const SignupPage = () => {
               </FieldDescription>
             </FieldLabel>
           </Field>
-          <AuthSubmitButton
-            loading={isSubmitting}
-            idleLabel="Criar conta"
-            loadingLabel="Criando..."
-          />
+          <AuthSubmitButton idleLabel="Criar conta" loadingLabel="Criando..." />
           <MobileAuthLink href="/login">Já tenho conta</MobileAuthLink>
           <AuthSwitchLink
             text="Já tem uma conta?"

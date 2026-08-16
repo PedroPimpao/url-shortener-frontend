@@ -26,11 +26,9 @@ import SocialLoginOptions from '@/components/social-login-options';
 const LoginPage = () => {
   const router = useRouter();
   const [error, setError] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const submit = async (formData: FormData) => {
     setError('');
-    setIsSubmitting(true);
     try {
       const tokens = await api.login({
         email: String(formData.get('email')).trim().toLowerCase(),
@@ -42,8 +40,6 @@ const LoginPage = () => {
       setError(
         reason instanceof Error ? reason.message : 'Não foi possível entrar.',
       );
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -51,13 +47,9 @@ const LoginPage = () => {
     <AuthPageShell
       backHref="/"
       mobileTag="Acesso"
-      mobileEyebrow="Bem-vindo de volta"
-      mobileTitle="Entre na sua conta"
-      mobileDescription="Continue de onde parou. Seus projetos estão te esperando."
-      desktopEyebrow="Você pode facilmente"
-      desktopTitle="Acelerar seu trabalho com nosso App Web"
-      desktopDescription="Organize projetos, colabore em tempo real e acompanhe tudo em um único painel."
-      desktopItems={['Discord', 'Instagram', 'Spotify', 'YouTube', 'TikTok']}
+      eyebrow="Bem-vindo de volta"
+      title="Entre na sua conta"
+      description="Continue de onde parou. Gerencie seus links."
     >
       <AuthFormPanel
         eyebrow="Acesso à conta"
@@ -115,11 +107,7 @@ const LoginPage = () => {
             </Link>
           </div>
           <div className="mt-6">
-            <AuthSubmitButton
-              loading={isSubmitting}
-              idleLabel="Entrar"
-              loadingLabel="Entrando..."
-            />
+            <AuthSubmitButton idleLabel="Entrar" loadingLabel="Entrando..." />
           </div>
           <MobileAuthLink href="/signup">Criar conta</MobileAuthLink>
           <AuthSwitchLink

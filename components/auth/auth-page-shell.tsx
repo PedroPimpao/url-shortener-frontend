@@ -1,38 +1,30 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Check } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 
 type AuthPageShellProps = {
   backHref: string;
   mobileTag: string;
-  mobileEyebrow: string;
-  mobileTitle: string;
-  mobileDescription?: string;
-  desktopEyebrow: string;
-  desktopTitle: string;
-  desktopDescription: string;
-  desktopItems?: string[];
+  eyebrow: string;
+  title: string;
+  description: string;
   children: ReactNode;
 };
 
 export const AuthPageShell = ({
   backHref,
   mobileTag,
-  mobileEyebrow,
-  mobileTitle,
-  mobileDescription,
-  desktopEyebrow,
-  desktopTitle,
-  desktopDescription,
-  desktopItems,
+  eyebrow,
+  title,
+  description,
   children,
 }: AuthPageShellProps) => (
   <main className="min-h-dvh bg-[#0a0e27] p-0 text-[#0b1130] md:grid md:place-items-center md:bg-[#eef1f8] md:p-8">
     <Card className="mx-auto flex min-h-dvh w-full max-w-295 flex-col overflow-hidden rounded-none border-0 bg-white md:grid md:min-h-175 md:grid-cols-2 md:rounded-[28px] md:shadow-[0_60px_100px_-40px_rgba(19,33,104,0.35)]">
-      <aside className="relative flex min-h-72.5 flex-col overflow-hidden bg-[radial-gradient(90%_70%_at_10%_90%,#7c9cff_0%,transparent_55%),radial-gradient(90%_70%_at_90%_10%,#6d8cff_0%,transparent_55%),linear-gradient(150deg,#060b2e_0%,#132168_50%,#3d5afe_130%)] px-6 pt-6 pb-12 text-white md:min-h-0 md:p-12">
-        <div className="absolute -top-24 -right-32 size-105 animate-pulse rounded-full bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.14),transparent_70%)] blur-xl" />
-        <div className="relative z-10 flex items-center justify-between md:justify-start md:gap-2.5">
+      <aside className="relative grid min-h-72.5 grid-rows-[auto_1fr] overflow-hidden bg-[radial-gradient(90%_70%_at_10%_90%,#7c9cff_0%,transparent_55%),radial-gradient(90%_70%_at_90%_10%,#6d8cff_0%,transparent_55%),linear-gradient(150deg,#060b2e_0%,#132168_50%,#3d5afe_130%)] px-6 pt-6 pb-16 text-white md:min-h-0 md:p-12">
+        <div className="absolute -top-24 -right-32 z-0 size-105 animate-pulse rounded-full bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.14),transparent_70%)] blur-xl" />
+        <div className="relative z-20 flex items-center justify-between md:justify-start md:gap-2.5">
           <Link
             href={backHref}
             aria-label="Voltar"
@@ -42,7 +34,7 @@ export const AuthPageShell = ({
           </Link>
           <div className="hidden items-center gap-2.5 md:flex">
             <span className="size-8 rounded-[9px] bg-linear-to-br from-white to-[#7c9cff]" />
-            <span className="text-lg font-bold">Fluxo</span>
+            <span className="text-lg font-bold">MyURL</span>
           </div>
           <span className="font-mono text-[11px] tracking-[0.14em] text-white/65 uppercase md:hidden">
             Fluxo · {mobileTag}
@@ -50,42 +42,22 @@ export const AuthPageShell = ({
           <span className="size-9.5 md:hidden" />
         </div>
 
-        <div className="relative z-10 mt-auto">
+        <div className="relative z-20 self-end md:absolute md:inset-x-12 md:top-1/2 md:-translate-y-1/2">
           <p className="mb-2 flex items-center gap-2 font-mono text-[11.5px] tracking-[0.08em] text-[#9bb1ff] before:h-px before:w-3.5 before:bg-[#9bb1ff] md:mb-3.5 md:text-xs md:uppercase">
-            <span className="md:hidden">{mobileEyebrow}</span>
-            <span className="hidden md:inline">{desktopEyebrow}</span>
+            {eyebrow}
           </p>
           <h1 className="max-w-115 text-[34px] leading-[1.08] font-bold tracking-[-0.02em] md:text-[46px] md:leading-[1.1]">
-            <span className="md:hidden">{mobileTitle}</span>
-            <span className="hidden md:inline">{desktopTitle}</span>
+            {title}
           </h1>
-          {mobileDescription && (
-            <p className="mt-3 max-w-100 text-[13.5px] leading-6 text-white/70 md:hidden">
-              {mobileDescription}
-            </p>
-          )}
-          <p className="mt-4 hidden max-w-100 text-[15px] leading-6 text-white/70 md:block">
-            {desktopDescription}
+          <p className="mt-3 max-w-100 text-[13.5px] leading-6 text-white/70 md:mt-4 md:text-[15px]">
+            {description}
           </p>
         </div>
-
-        {desktopItems && (
-          <div className="relative z-10 mt-12 hidden space-y-3 text-sm text-white/85 md:block">
-            {desktopItems.map((item) => (
-              <p key={item} className="flex items-center gap-2.5">
-                <span className="grid size-6 place-items-center rounded-full bg-white/15">
-                  <Check className="size-3.5" />
-                </span>
-                {item}
-              </p>
-            ))}
-          </div>
-        )}
 
         <svg
           viewBox="0 0 390 60"
           preserveAspectRatio="none"
-          className="absolute right-0 -bottom-px left-0 h-13 w-full md:hidden"
+          className="absolute right-0 -bottom-px left-0 z-10 h-13 w-full md:hidden"
           aria-hidden="true"
         >
           <path
